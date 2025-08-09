@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.event_name }} - アークナイツ ストーリーアーカイブ{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb">
+    <ol>
+        <li><a href="{{ index_path }}">ホーム</a></li>
+        <li><a href="{{ index_path }}#events">イベント一覧</a></li>
+        <li class="active">{{ event.event_name }}</li>
+    </ol>
+</nav>
+
+<section class="event-header">
+    <h2>{{ event.event_name }}</h2>
+    <div class="event-info">
+        <p class="event-type">{{ event.activity_info.display_type }}</p>
+        <p class="event-date">開催期間: {{ event.start_date }} ~ {{ event.end_date }}</p>
+    </div>
+</section>
+
+<section class="stories-section">
+    <h3>ストーリー一覧</h3>
+    
+    <div class="stories-list">
+        {% for story in stories %}
+        <article class="story-item">
+            <div class="story-header">
+                <h4 class="story-title">
+                    <a href="stories/{{ story.file_name }}.html">
+                        {{ story.story_name }}
+                    </a>
+                </h4>
+                <span class="story-code">{{ story.story_code }}</span>
+            </div>
+            
+            {% if story.story_info %}
+            <div class="story-summary">
+                <p>{{ story.story_info }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="story-footer">
+                <a href="stories/{{ story.file_name }}.html" class="btn btn-secondary">
+                    ストーリーを読む
+                </a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<nav class="navigation">
+    <a href="{{ index_path }}" class="btn btn-back">イベント一覧に戻る</a>
+</nav>
+{% endblock %}

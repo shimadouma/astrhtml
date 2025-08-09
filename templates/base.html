@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}アークナイツ ストーリーアーカイブ{% endblock %}</title>
+    <link rel="stylesheet" href="{{ css_path }}main.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1 class="site-title">
+                <a href="{{ index_path }}">アークナイツ ストーリーアーカイブ</a>
+            </h1>
+            <nav class="site-nav">
+                <ul>
+                    <li><a href="{{ index_path }}">ホーム</a></li>
+                    <li><a href="{{ index_path }}#events">イベント一覧</a></li>
+                    <li><a href="{{ index_path }}#about">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2024 アークナイツ ストーリーアーカイブ</p>
+            <p class="disclaimer">
+                このサイトは非公式のファンサイトです。<br>
+                ストーリーデータは <a href="https://github.com/050644zf/ArknightsStoryJson" target="_blank">ArknightsStoryJson</a> を使用しています。
+            </p>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

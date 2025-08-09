@@ -1,0 +1,215 @@
+/* Story Page Styles */
+
+.story-content {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.story-header {
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.story-header h2 {
+    font-size: 1.8rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.story-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.story-tag {
+    background-color: #e8f4f8;
+    color: #2980b9;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.story-info {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    border-left: 4px solid var(--secondary-color);
+}
+
+.story-info p {
+    color: #666;
+    line-height: 1.8;
+}
+
+/* Story Body */
+.story-body {
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+.story-scene {
+    margin-bottom: 3rem;
+}
+
+.scene-background {
+    margin-bottom: 1.5rem;
+}
+
+.background-note {
+    color: #7f8c8d;
+    font-style: italic;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Dialog Blocks */
+.dialog-block {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #ffffff;
+    border-left: 3px solid #3498db;
+    position: relative;
+}
+
+.dialog-block.narration {
+    border-left-color: #95a5a6;
+    background-color: #f8f9fa;
+}
+
+.speaker {
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.dialog-text {
+    color: #333;
+    line-height: 1.8;
+}
+
+.narration .dialog-text {
+    font-style: italic;
+    color: #555;
+}
+
+/* Subtitle Blocks */
+.subtitle-block {
+    text-align: center;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background-color: #2c3e50;
+    color: white;
+    border-radius: 4px;
+}
+
+.subtitle-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+/* Character Notes */
+.character-note {
+    text-align: center;
+    margin: 1rem 0;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+/* Story Navigation */
+.story-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e0e0e0;
+}
+
+.story-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.btn-prev,
+.btn-next {
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.btn-prev:hover,
+.btn-next:hover {
+    background-color: #2980b9;
+}
+
+.btn-prev {
+    margin-right: auto;
+}
+
+.btn-next {
+    margin-left: auto;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .story-content {
+        padding: 1rem;
+    }
+    
+    .story-header h2 {
+        font-size: 1.4rem;
+    }
+    
+    .story-body {
+        font-size: 1rem;
+    }
+    
+    .dialog-block {
+        padding: 0.75rem;
+    }
+    
+    .speaker {
+        font-size: 1rem;
+    }
+    
+    .story-navigation {
+        flex-direction: column;
+    }
+    
+    .btn-prev,
+    .btn-next {
+        width: 100%;
+        text-align: center;
+        margin: 0;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .site-header,
+    .site-footer,
+    .breadcrumb,
+    .story-navigation {
+        display: none;
+    }
+    
+    .story-content {
+        box-shadow: none;
+        padding: 0;
+    }
+    
+    .dialog-block {
+        break-inside: avoid;
+    }
+}

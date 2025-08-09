@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ story.story_name }} - {{ story.event_name }} - アークナイツ ストーリーアーカイブ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ css_path }}story.css">
+{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb">
+    <ol>
+        <li><a href="{{ index_path }}">ホーム</a></li>
+        <li><a href="{{ index_path }}#events">イベント一覧</a></li>
+        <li><a href="{{ event_index_path }}">{{ story.event_name }}</a></li>
+        <li class="active">{{ story.story_name }}</li>
+    </ol>
+</nav>
+
+<article class="story-content">
+    <header class="story-header">
+        <h2>{{ story.story_name }}</h2>
+        <div class="story-meta">
+            <span class="story-code">{{ story.story_code }}</span>
+            {% if story.avg_tag %}
+            <span class="story-tag">{{ story.avg_tag }}</span>
+            {% endif %}
+        </div>
+        {% if story.story_info %}
+        <div class="story-info">
+            <p>{{ story.story_info }}</p>
+        </div>
+        {% endif %}
+    </header>
+
+    <div class="story-body">
+        {% for scene in scenes %}
+        <section class="story-scene">
+            {% if scene.background %}
+            <div class="scene-background">
+                <p class="background-note">【背景: {{ scene.background }}】</p>
+            </div>
+            {% endif %}
+            
+            {% for item in scene.content %}
+                {% if item.type == 'dialog' %}
+                <div class="dialog-block {% if item.is_narration %}narration{% endif %}">
+                    {% if item.speaker %}
+                    <div class="speaker">{{ item.speaker }}</div>
+                    {% endif %}
+                    <div class="dialog-text">{{ item.text|safe }}</div>
+                </div>
+                
+                {% elif item.type == 'subtitle' %}
+                <div class="subtitle-block">
+                    <p class="subtitle-text">{{ item.text|safe }}</p>
+                </div>
+                
+                {% elif item.type == 'character' %}
+                <div class="character-note">
+                    <p>【登場: {{ item.characters|join(', ') }}】</p>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </section>
+        {% endfor %}
+    </div>
+
+    <footer class="story-footer">
+        <nav class="story-navigation">
+            {% if prev_story %}
+            <a href="{{ prev_story.file_name }}.html" class="btn btn-prev">
+                ← 前のストーリー: {{ prev_story.story_name }}
+            </a>
+            {% endif %}
+            
+            <a href="{{ event_index_path }}" class="btn btn-back">
+                ストーリー一覧に戻る
+            </a>
+            
+            {% if next_story %}
+            <a href="{{ next_story.file_name }}.html" class="btn btn-next">
+                次のストーリー: {{ next_story.story_name }} →
+            </a>
+            {% endif %}
+        </nav>
+    </footer>
+</article>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}ホーム - アークナイツ ストーリーアーカイブ{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h2>アークナイツ イベントストーリー コレクション</h2>
+    <p>アークナイツの各イベントストーリーを読みやすい形式で閲覧できます。</p>
+</section>
+
+<section id="events" class="events-section">
+    <h2>イベント一覧</h2>
+    
+    <div class="events-grid">
+        {% for event in events %}
+        <article class="event-card">
+            <div class="event-card-header">
+                <h3 class="event-title">
+                    <a href="events/{{ event.event_id }}/index.html">{{ event.event_name }}</a>
+                </h3>
+                <span class="event-type">{{ event.activity_info.display_type }}</span>
+            </div>
+            
+            <div class="event-card-body">
+                <p class="event-date">
+                    開催期間: {{ event.start_date }} ~ {{ event.end_date }}
+                </p>
+                <p class="event-stories">
+                    ストーリー数: {{ event.story_count }}
+                </p>
+            </div>
+            
+            <div class="event-card-footer">
+                <a href="events/{{ event.event_id }}/index.html" class="btn btn-primary">
+                    ストーリーを読む
+                </a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section id="about" class="about-section">
+    <h2>About</h2>
+    <p>
+        このサイトは、アークナイツのイベントストーリーを保存・閲覧するための非公式アーカイブです。<br>
+        ゲーム内で見逃したストーリーや、もう一度読み返したいストーリーをいつでも楽しむことができます。
+    </p>
+    <p>
+        ストーリーデータは <a href="https://github.com/050644zf/ArknightsStoryJson" target="_blank">ArknightsStoryJson</a> プロジェクトのデータを使用しています。
+    </p>
+</section>
+{% endblock %}
