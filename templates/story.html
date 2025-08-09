@@ -35,19 +35,19 @@
     <div class="story-body">
         {% for scene in scenes %}
         <section class="story-scene">
-            {% if scene.background %}
-            <div class="scene-background">
-                <p class="background-note">【背景: {{ scene.background }}】</p>
-            </div>
-            {% endif %}
-            
             {% for item in scene.content %}
                 {% if item.type == 'dialog' %}
                 <div class="dialog-block {% if item.is_narration %}narration{% endif %}">
                     {% if item.speaker %}
                     <div class="speaker">{{ item.speaker }}</div>
                     {% endif %}
-                    <div class="dialog-text">{{ item.text|safe }}</div>
+                    {% if item.texts %}
+                        {% for text in item.texts %}
+                        <div class="dialog-text">{{ text|safe }}</div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="dialog-text">{{ item.text|safe }}</div>
+                    {% endif %}
                 </div>
                 
                 {% elif item.type == 'subtitle' %}
