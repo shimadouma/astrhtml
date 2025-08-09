@@ -15,6 +15,7 @@ from src.generators.index_generator import IndexGenerator
 from src.generators.event_generator import EventGenerator
 from src.generators.story_generator import StoryGenerator
 from src.generators.search_index import SearchIndexGenerator
+from src.generators.bookmark_generator import BookmarkGenerator
 from src.utils.file_utils import clean_directory, copy_static_files
 
 
@@ -78,6 +79,7 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None):
     event_gen = EventGenerator()
     story_gen = StoryGenerator()
     search_gen = SearchIndexGenerator()
+    bookmark_gen = BookmarkGenerator(output_dir=DIST_PATH)
     
     # Generate search index
     print("Generating search index...")
@@ -86,6 +88,10 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None):
     # Generate index page
     print("Generating index page...")
     index_gen.generate(events, DIST_PATH)
+    
+    # Generate bookmarks page
+    print("Generating bookmarks page...")
+    bookmark_gen.generate_bookmarks_page()
     
     # Generate event and story pages
     for i, event in enumerate(events, 1):

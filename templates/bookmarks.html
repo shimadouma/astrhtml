@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}ブックマーク - アークナイツ ストーリーアーカイブ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ css_path }}bookmarks.css">
+{% endblock %}
+
+{% block content %}
+<div class="bookmarks-page">
+    <header class="bookmarks-header">
+        <h1>ブックマーク</h1>
+        <p class="bookmarks-description">お気に入りのストーリーシーンを保存して、いつでも見返すことができます。</p>
+    </header>
+
+    <div class="bookmarks-controls">
+        <div class="bookmarks-stats">
+            <span class="bookmark-count">ブックマーク数: <strong id="bookmark-count">0</strong></span>
+        </div>
+        <div class="bookmarks-actions">
+            <button class="btn-secondary" id="export-bookmarks">エクスポート</button>
+            <button class="btn-secondary" id="import-bookmarks">インポート</button>
+            <input type="file" id="import-file" accept=".json" style="display: none;">
+            <button class="btn-danger" id="clear-bookmarks">すべて削除</button>
+        </div>
+    </div>
+
+    <div class="bookmarks-search">
+        <input type="text" id="bookmark-search" placeholder="ブックマークを検索..." aria-label="ブックマーク検索">
+    </div>
+
+    <div class="bookmarks-container">
+        <div id="bookmarks-list" class="bookmarks-list">
+            <!-- Bookmarks will be dynamically loaded here -->
+        </div>
+        
+        <div id="no-bookmarks" class="no-bookmarks">
+            <div class="no-bookmarks-content">
+                <div class="no-bookmarks-icon">📖</div>
+                <h3>まだブックマークがありません</h3>
+                <p>ストーリーページで台詞をクリックしてブックマークを追加してください。</p>
+                <a href="{{ index_path }}" class="btn-primary">ストーリーを見る</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Dialog -->
+<div id="confirm-dialog" class="dialog-overlay" style="display: none;">
+    <div class="dialog">
+        <div class="dialog-header">
+            <h3 id="confirm-title">確認</h3>
+        </div>
+        <div class="dialog-content">
+            <p id="confirm-message"></p>
+        </div>
+        <div class="dialog-actions">
+            <button class="btn-secondary" id="confirm-cancel">キャンセル</button>
+            <button class="btn-danger" id="confirm-ok">実行</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ js_path }}bookmark.js"></script>
+<script src="{{ js_path }}bookmarks-page.js"></script>
+{% endblock %}

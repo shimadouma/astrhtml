@@ -130,6 +130,15 @@ git submodule update --remote --merge
    - Story pages: `events/{event_id}/stories/{stage_code}.html`
    - Stage codes (OR-1, OR-ST-1, etc.) are used as file names
 
+5. **Data Compatibility and Backward Compatibility**:
+   - **localStorage Bookmark Data**: Maintain backward compatibility for user bookmark data stored in browser localStorage
+   - When updating bookmark data structure, implement migration logic to preserve existing bookmarks
+   - Version bookmark data format and include migration paths for older versions
+   - Test bookmark functionality after any JavaScript/data structure changes
+   - Consider user experience when changing data formats - users should not lose their bookmarks
+   - Document bookmark data structure changes in commit messages
+   - Use defensive programming to handle malformed or outdated bookmark data gracefully
+
 ## Troubleshooting
 
 ### Common Issues and Solutions

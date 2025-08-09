@@ -15,12 +15,45 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 class PreviewHandler(SimpleHTTPRequestHandler):
     """Custom handler for serving the static site with proper headers"""
     
+    def __init__(self, *args, **kwargs):
+        """Initialize handler with stable working directory"""
+        # Ensure we stay in the correct directory
+        try:
+            current_dir = os.getcwd()
+            if not os.path.exists(current_dir):
+                raise FileNotFoundError("Current directory no longer exists")
+        except (OSError, FileNotFoundError):
+            # If current directory doesn't exist, change to a safe directory
+            project_root = Path(__file__).parent
+            safe_dir = project_root / 'dist'
+            if safe_dir.exists():
+                os.chdir(safe_dir)
+            else:
+                # Fallback to parent directory
+                os.chdir(project_root)
+        super().__init__(*args, **kwargs)
+    
     def end_headers(self):
         # Add CORS headers for development
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         super().end_headers()
+    
+    def log_error(self, format, *args):
+        """Override error logging to handle missing file errors gracefully"""
+        if "No such file or directory" in str(args):
+            # Don't spam logs with missing file errors
+            return
+        super().log_error(format, *args)
+    
+    def translate_path(self, path):
+        """Override path translation to handle missing directories gracefully"""
+        try:
+            return super().translate_path(path)
+        except (OSError, FileNotFoundError):
+            # If translation fails, return a safe path
+            return os.path.join(os.getcwd(), 'index.html')
 
 
 def check_dist_directory():
@@ -52,15 +85,78 @@ def start_server(port=8000, open_browser=True, host='localhost'):
     if not check_dist_directory():
         sys.exit(1)
     
-    # Change to dist directory
-    dist_path = Path('dist').absolute()
+    # Get absolute paths to prevent directory issues
+    project_root = Path(__file__).parent.absolute()
+    dist_path = project_root / 'dist'
     original_cwd = os.getcwd()
     
+    # Ensure dist directory still exists
+    if not dist_path.exists():
+        print("❌ Error: dist directory disappeared!")
+        print("Please run 'python build.py' to regenerate the site.")
+        sys.exit(1)
+    
+    server = None
     try:
         os.chdir(dist_path)
         
-        # Start server with PreviewHandler
-        server = HTTPServer((host, port), PreviewHandler)
+        # Create server with robust handler
+        class RobustPreviewHandler(PreviewHandler):
+            def __init__(self, *args, **kwargs):
+                self.dist_path = dist_path
+                self.project_root = project_root
+                self._last_known_good_dir = dist_path
+                super().__init__(*args, **kwargs)
+            
+            def do_GET(self):
+                """Override GET handler to ensure we stay in the correct directory"""
+                try:
+                    # Check if we're in a valid directory
+                    current_dir = Path.cwd()
+                    if not current_dir.exists():
+                        raise FileNotFoundError("Current directory no longer exists")
+                    
+                    # If not in dist directory, try to change to it
+                    if current_dir != self.dist_path:
+                        if self.dist_path.exists():
+                            os.chdir(self.dist_path)
+                            self._last_known_good_dir = self.dist_path
+                        else:
+                            # Dist doesn't exist, serve from project root
+                            os.chdir(self.project_root)
+                            self._last_known_good_dir = self.project_root
+                            self.send_error(503, "Site needs to be rebuilt. Run 'python build.py'")
+                            return
+                    
+                    super().do_GET()
+                    
+                except (OSError, FileNotFoundError) as e:
+                    # Try to recover to a safe directory
+                    try:
+                        if self.project_root.exists():
+                            os.chdir(self.project_root)
+                            self._last_known_good_dir = self.project_root
+                        elif self._last_known_good_dir.exists():
+                            os.chdir(self._last_known_good_dir)
+                        
+                        # Send appropriate error response
+                        if self.dist_path.exists():
+                            self.send_error(404, f"File not found: {self.path}")
+                        else:
+                            self.send_error(503, "Site needs to be rebuilt. Run 'python build.py'")
+                    except Exception:
+                        # Last resort error
+                        self.send_error(500, "Server in unstable state")
+                        
+                except Exception as e:
+                    # Handle other errors gracefully
+                    try:
+                        self.send_error(500, f"Server error: {str(e)}")
+                    except Exception:
+                        # If we can't even send an error, just pass
+                        pass
+        
+        server = HTTPServer((host, port), RobustPreviewHandler)
         server_url = f"http://{host}:{port}"
         
         print("🚀 Starting Arknights Story Archive preview server...")
@@ -83,7 +179,9 @@ def start_server(port=8000, open_browser=True, host='localhost'):
         
     except KeyboardInterrupt:
         print("\n🛑 Shutting down preview server...")
-        server.shutdown()
+        if server:
+            server.shutdown()
+            server.server_close()
         
     except OSError as e:
         if e.errno == 98:  # Address already in use
@@ -93,8 +191,21 @@ def start_server(port=8000, open_browser=True, host='localhost'):
             print(f"❌ Server error: {e}")
         sys.exit(1)
         
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+        sys.exit(1)
+        
     finally:
-        os.chdir(original_cwd)
+        try:
+            if server:
+                server.server_close()
+        except:
+            pass
+        try:
+            os.chdir(original_cwd)
+        except (OSError, FileNotFoundError):
+            # If original directory no longer exists, stay where we are
+            pass
 
 
 def main():
