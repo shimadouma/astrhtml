@@ -167,8 +167,16 @@ git submodule update --remote --merge
 - **Manual Deployment**: Run `./scripts/deploy.sh`
 - **GitHub Pages**: Automatically configured via Actions
 
+## Task Management
+
+**TODO and DONE Files Management**:
+- When tasks in `TODO.md` are completed, move them to `DONE.md`
+- Keep `TODO.md` clean by only containing pending or in-progress tasks
+- `DONE.md` serves as a record of completed features and improvements
+- When moving items, preserve the original formatting and add completion date if relevant
+- Group related completed items together in `DONE.md` for better organization
+
 ## License and Disclaimer
 
 - This is an unofficial fan project
 - Story data uses the ArknightsStoryJson project
-- Arknights copyright belongs to Hypergryph

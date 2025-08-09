@@ -2,6 +2,33 @@
  * Bookmark page and UI styling
  */
 
+/* Bookmark Notice */
+.bookmarks-notice {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--hover-color);
+    border-radius: 6px;
+    border-left: 3px solid var(--secondary-color);
+}
+
+.bookmarks-notice p {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-color);
+    opacity: 0.8;
+    margin: 0;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .bookmarks-notice {
+    background-color: #2d3748;
+    border-left-color: #4299e1;
+}
+
+[data-theme="dark"] .bookmarks-notice p {
+    color: #e2e8f0;
+}
+
 /* Bookmark Indicator on Story Pages */
 .bookmark-indicator {
     position: absolute;
