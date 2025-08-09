@@ -28,10 +28,20 @@
             <div class="story-header">
                 <h4 class="story-title">
                     <a href="stories/{{ story.file_name }}.html">
-                        {{ story.story_name }}
+                        {% if story.stage_code %}{{ story.stage_code }}{% endif %}
+                        {% if story.stage_name %}{{ story.stage_name }}{% else %}{{ story.story_name }}{% endif %}
                     </a>
                 </h4>
-                <span class="story-code">{{ story.story_code }}</span>
+                <div class="story-meta">
+                    {% if story.story_phase %}
+                    <span class="story-phase story-phase-{{ story.story_phase.replace('戦闘前', 'before').replace('戦闘後', 'after').replace('間章', 'story') }}">
+                        {{ story.story_phase }}
+                    </span>
+                    {% endif %}
+                    {% if story.danger_level and story.danger_level != '-' %}
+                    <span class="danger-level">{{ story.danger_level }}</span>
+                    {% endif %}
+                </div>
             </div>
             
             {% if story.story_info %}

@@ -4,6 +4,7 @@ from pathlib import Path
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_PATH = PROJECT_ROOT / 'data' / 'ArknightsStoryJson'
+ARKNIGHTS_STORY_JSON_PATH = DATA_PATH / 'ja_JP'  # Path to Japanese data
 TEMPLATE_PATH = PROJECT_ROOT / 'templates'
 STATIC_PATH = PROJECT_ROOT / 'static'
 DIST_PATH = PROJECT_ROOT / 'dist'

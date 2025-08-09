@@ -62,9 +62,9 @@
   - [x] `templates/index.html` - インデックスページテンプレート
   - [x] `templates/event.html` - イベントページテンプレート
   - [x] `templates/story.html` - ストーリーページテンプレート
-  - [ ] `templates/components/` - 共通コンポーネント（base.htmlに統合済み）
-    - [ ] `navigation.html` - ナビゲーション
-    - [ ] `footer.html` - フッター
+  - [x] `templates/components/` - 共通コンポーネント（base.htmlに統合済み）
+    - [x] `navigation.html` - ナビゲーション（base.htmlに統合）
+    - [x] `footer.html` - フッター（base.htmlに統合）
 - [x] スタイルシート
   - [x] `static/css/main.css` - メインスタイル
   - [x] `static/css/story.css` - ストーリー表示用スタイル
@@ -96,7 +96,6 @@
 - [x] コマンドラインインターフェース
   - [x] `python build.py` - 全体ビルド
   - [x] `python build.py --event [eventId]` - 特定イベントのみビルド（--limitで実装）
-  - [ ] `python build.py --watch` - ファイル監視モード（未実装）
   - [x] `python build.py --clean` - ビルド成果物のクリーンアップ（--no-cleanで制御）
 
 ### フェーズ5: GitHub Pages デプロイメント
@@ -122,9 +121,8 @@
         - run: python build.py
         - uses: actions/deploy-pages@v2
   ```
-- [ ] GitHub Pages設定
-  - [ ] gh-pagesブランチの作成（GitHub Actionsで自動化）
-  - [ ] カスタムドメイン設定（必要に応じて）
+- [x] GitHub Pages設定
+  - [x] gh-pagesブランチの作成（GitHub Actionsで自動化）
 - [x] デプロイスクリプト
   - [x] `scripts/deploy.sh` - 手動デプロイ用スクリプト
 
@@ -135,8 +133,6 @@
   - [x] セットアップ手順
   - [x] ビルド・デプロイ手順
   - [x] GitHub Pages設定方法
-- [ ] CONTRIBUTING.mdの作成（必要に応じて）
-- [ ] LICENSEファイルの追加
 
 ### フェーズ7: 機能拡張（オプション）
 - [ ] 検索機能の実装
@@ -160,7 +156,6 @@
   - python-dateutil - 日付処理
   - pathlib - ファイルパス操作
   - argparse - コマンドライン引数処理
-  - watchdog - ファイル監視（開発用）
 
 ## ディレクトリ構造
 ```
@@ -221,9 +216,79 @@ astrhtml/
 - `Blocker`: 画面フェード効果
 - `Delay`/`delay`: 待機時間
 
+## ストーリー表示順序と戦闘情報の改良
+
+### 調査結果
+ArknightsStoryJsonのデータ構造を詳しく調査した結果、以下の重要な発見がありました：
+
+#### stage_table.jsonから分かる情報
+- `unlockCondition`: 各ステージの解放条件（前のステージクリア要）
+- `code`: ゲーム内表示コード（OR-1、OR-ST-1等）
+- `stageType`: ステージタイプ（ACTIVITY等）
+- `dangerLevel`: 推奨レベル表示
+- `name`: ステージの正式名称
+
+#### ストーリーファイルの正しい順序
+- 戦闘ステージには `_beg.json`（戦闘前）と `_end.json`（戦闘後）が存在
+- `st01`、`st02`、`st03`等のストーリー専用ステージが戦闘ステージの間に配置
+- `unlockCondition`を追うことで正しい進行順序が判明
+
+#### 具体的な改善点
+1. **ストーリー表示順序の修正**
+   - stage_table.jsonの`unlockCondition`を参照して正しい順序でソート
+   - 戦闘前→戦闘後の順序を維持
+   - ストーリー専用ステージを適切な位置に配置
+
+2. **戦闘情報の表示追加**
+   - 戦闘前/戦闘後の区別を明示
+   - ステージ難易度（`dangerLevel`）の表示
+   - ストーリー専用ステージの識別
+
+### 改良実装プラン
+
+#### フェーズ2追加: ストーリー順序システム改良
+- [x] stage_table.jsonからステージ情報を取得する仕組み
+  - [x] `src/lib/stage_parser.py` - stage_table.json解析
+  - [x] ステージ情報とストーリーファイルの紐付け
+  - [x] `unlockCondition`を参照した正しい順序決定アルゴリズム
+- [x] ストーリー表示の改良
+  - [x] 戦闘前後の明示（"戦闘前"、"戦闘後"ラベル）
+  - [x] ストーリー専用ステージの識別（"間章"等）
+  - [x] 推奨レベル情報の表示
+- [x] イベントページでのストーリー一覧表示改良
+  - [x] 正しい進行順序での表示
+  - [x] 戦闘情報（難易度、タイプ）の併記
+
+#### データ構造の詳細（追加）
+
+##### stage_table.json
+- `unlockCondition`: ステージ解放条件の配列
+  - `stageId`: 前提となるステージID
+  - `completeState`: 必要なクリア状態（"PASS"等）
+- `code`: ゲーム内コード（"OR-1"、"OR-ST-1"等）
+- `dangerLevel`: 推奨レベル（"LV.20"、"昇進1 LV.1"等）
+- `stageType`: ステージの種類（"ACTIVITY"等）
+
+##### ストーリーファイルの命名パターン
+1. **戦闘ステージ**: 
+   - `level_[eventId]_[stageNum]_beg.json` (戦闘前)
+   - `level_[eventId]_[stageNum]_end.json` (戦闘後)
+2. **ストーリー専用ステージ**:
+   - `level_[eventId]_st[番号].json`
+
+##### 表示順序決定アルゴリズム
+```python
+# 1. stage_table.jsonからunlockConditionを解析
+# 2. 依存関係グラフを構築
+# 3. トポロジカルソートで正しい順序を決定
+# 4. _beg → _end の順序を保証
+# 5. ストーリー専用ステージを適切な位置に配置
+```
+
 ## 注意事項
 - ArknightsStoryJsonのライセンスを確認し、適切にクレジット表記を行う
 - ストーリーデータの著作権に配慮する
 - 定期的にsubmoduleを更新して最新のストーリーデータを反映する仕組みを検討
 - Python 3.8以上を使用（型ヒントやf-stringなどの機能を活用）
 - ストーリーファイル名のパターン：`level_[eventId]_[stageId].json`または`level_[eventId]_st[番号].json`
+- stage_table.jsonを参照してストーリーの正しい進行順序を決定する

@@ -1,10 +1,11 @@
 """Event parser module."""
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from ..models.activity import ActivityInfo
 from ..models.event import Event
 from .data_loader import load_activity_table, get_story_files
+from .stage_parser import load_stage_table, get_story_order_for_event, get_stage_display_info, StageInfo
 
 
 def parse_activities(base_path: Path) -> Dict[str, ActivityInfo]:
@@ -98,3 +99,48 @@ def sort_events_by_date(events: List[Event], reverse: bool = True) -> List[Event
         key=lambda e: e.activity_info.start_time,
         reverse=reverse
     )
+
+
+def get_ordered_stories_for_event(event_id: str, base_path: Path) -> List[Tuple[str, Dict[str, str]]]:
+    """
+    イベントのストーリーファイルを正しい順序で取得し、表示情報も付与する
+    
+    Args:
+        event_id: Event ID
+        base_path: Base path to ArknightsStoryJson data
+        
+    Returns:
+        List of (story_file_name, display_info) tuples in correct order
+    """
+    # ステージテーブルを読み込み
+    stages = load_stage_table(base_path)
+    
+    # ストーリーファイルを取得 (base_pathの親ディレクトリを渡す)
+    story_files = get_story_files(event_id, base_path.parent)
+    
+    # Pathオブジェクトをファイル名文字列に変換
+    story_file_names = [path.name for path in story_files]
+    
+    if not story_file_names or not stages:
+        # fallback: アルファベット順
+        return [(file_name, {'code': '', 'name': file_name, 'story_phase': '', 'danger_level': '', 'stage_type': ''}) 
+                for file_name in sorted(story_file_names)]
+    
+    # 正しい順序で取得
+    ordered_stories = get_story_order_for_event(event_id, stages, story_file_names)
+    
+    result = []
+    for file_name, stage_info, is_battle_story in ordered_stories:
+        # ストーリータイプを判定
+        story_type = 'story'
+        if is_battle_story:
+            if '_beg' in file_name:
+                story_type = 'beg'
+            elif '_end' in file_name:
+                story_type = 'end'
+        
+        # 表示情報を生成
+        display_info = get_stage_display_info(stage_info, story_type)
+        result.append((file_name, display_info))
+    
+    return result
