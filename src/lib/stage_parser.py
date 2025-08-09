@@ -76,10 +76,12 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
         List[Tuple[str, str, bool]]: List of (file_name, stage_info, is_battle_story)
     """
     # Extract event-related stages
+    # Note: zone_id might not exactly match event_id (e.g., act31side -> act31sre_zone1)
+    # So we check if stage_id starts with event_id instead
     event_stages = {
         stage_id: stage_info 
         for stage_id, stage_info in stages.items()
-        if stage_info.zone_id.startswith(event_id)
+        if stage_id.startswith(event_id)
     }
     
     # Create mapping between story files and stages
