@@ -7,33 +7,51 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    width: 0;
-    height: 0;
+    width: 16px;
+    height: 18px;
     display: none;
-    z-index: 10;
+    z-index: 100;
     pointer-events: none;
 }
 
 .bookmark-indicator.visible {
     display: block;
-    width: 18px;
-    height: 22px;
-    background: #3498db;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
     box-shadow: 0 2px 4px rgba(52, 152, 219, 0.4);
+    /* Create traditional ribbon bookmark with inverted V-notch using clip-path */
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%);
 }
 
-/* Create bookmark shape using CSS triangles */
-.bookmark-indicator.visible::after {
+/* Fallback for browsers that don't support clip-path */
+@supports not (clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%)) {
+    .bookmark-indicator.visible {
+        border-radius: 2px 2px 0 0;
+    }
+    
+    .bookmark-indicator.visible::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-top: 5px solid #2980b9;
+    }
+}
+
+/* Add subtle gradient highlight for depth */
+.bookmark-indicator.visible::before {
     content: '';
     position: absolute;
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-top: 8px solid #3498db;
+    top: 0;
+    left: 1px;
+    right: 1px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    border-radius: 1px 1px 0 0;
 }
 
 /* Bookmarked dialog block styling */
@@ -47,6 +65,8 @@
     transition: border-left 0.3s ease, background-color 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
     position: relative !important;
+    /* Ensure this element serves as positioned ancestor for bookmark indicator */
+    z-index: 1;
 }
 
 .dialog-block:hover {
@@ -56,12 +76,19 @@
 
 /* Dark mode styles */
 [data-theme="dark"] .bookmark-indicator.visible {
-    background: #4299e1;
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
     box-shadow: 0 2px 4px rgba(66, 153, 225, 0.4);
 }
 
-[data-theme="dark"] .bookmark-indicator.visible::after {
-    border-top-color: #4299e1;
+[data-theme="dark"] .bookmark-indicator.visible::before {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+/* Dark mode fallback for browsers that don't support clip-path */
+@supports not (clip-path: polygon(0% 0%, 100% 0%, 100% 75%, 50% 90%, 0% 75%)) {
+    [data-theme="dark"] .bookmark-indicator.visible::after {
+        border-top-color: #3182ce;
+    }
 }
 
 [data-theme="dark"] .dialog-block.bookmarked {
