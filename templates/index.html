@@ -2,6 +2,11 @@
 
 {% block title %}ホーム - アークナイツ ストーリーアーカイブ{% endblock %}
 
+{% block extra_js %}
+<script src="{{ js_path }}search.js"></script>
+<script src="{{ js_path }}filters.js"></script>
+{% endblock %}
+
 {% block content %}
 <section id="events" class="events-section">
     <h2>イベント一覧</h2>

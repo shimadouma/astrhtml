@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git submodule:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

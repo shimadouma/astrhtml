@@ -10,16 +10,26 @@
 <body>
     <header class="site-header">
         <div class="container">
-            <h1 class="site-title">
-                <a href="{{ index_path }}">アークナイツ ストーリーアーカイブ</a>
-            </h1>
-            <nav class="site-nav">
-                <ul>
-                    <li><a href="{{ index_path }}">ホーム</a></li>
-                    <li><a href="{{ index_path }}#events">イベント一覧</a></li>
-                    <li><a href="{{ index_path }}#about">About</a></li>
-                </ul>
-            </nav>
+            <div class="site-header-content">
+                <h1 class="site-title">
+                    <a href="{{ index_path }}">アークナイツ ストーリーアーカイブ</a>
+                </h1>
+                <nav class="site-nav">
+                    <ul>
+                        <li><a href="{{ index_path }}">ホーム</a></li>
+                        <li><a href="{{ index_path }}#events">イベント一覧</a></li>
+                        <li><a href="{{ index_path }}#about">このサイトについて</a></li>
+                    </ul>
+                </nav>
+            </div>
+            <div class="site-controls">
+                <button class="font-toggle" aria-label="フォントを切り替え">
+                    あ 明朝体
+                </button>
+                <button class="theme-toggle" aria-label="テーマを切り替え">
+                    🌙 ダークモード
+                </button>
+            </div>
         </div>
     </header>
 
@@ -36,9 +46,16 @@
                 このサイトは非公式のファンサイトです。<br>
                 ストーリーデータは <a href="https://github.com/050644zf/ArknightsStoryJson" target="_blank">ArknightsStoryJson</a> を使用しています。
             </p>
+            {% if build_time %}
+            <p class="build-info">
+                Built on {{ build_time }}
+            </p>
+            {% endif %}
         </div>
     </footer>
 
+    <script src="{{ js_path }}font.js"></script>
+    <script src="{{ js_path }}theme.js"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

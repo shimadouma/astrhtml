@@ -103,7 +103,7 @@ def sort_events_by_date(events: List[Event], reverse: bool = True) -> List[Event
 
 def get_ordered_stories_for_event(event_id: str, base_path: Path) -> List[Tuple[str, Dict[str, str]]]:
     """
-    イベントのストーリーファイルを正しい順序で取得し、表示情報も付与する
+    Get story files for an event in correct order with display information
     
     Args:
         event_id: Event ID
@@ -112,26 +112,26 @@ def get_ordered_stories_for_event(event_id: str, base_path: Path) -> List[Tuple[
     Returns:
         List of (story_file_name, display_info) tuples in correct order
     """
-    # ステージテーブルを読み込み
+    # Load stage table
     stages = load_stage_table(base_path)
     
-    # ストーリーファイルを取得 (base_pathの親ディレクトリを渡す)
+    # Get story files (pass parent directory of base_path)
     story_files = get_story_files(event_id, base_path.parent)
     
-    # Pathオブジェクトをファイル名文字列に変換
+    # Convert Path objects to filename strings
     story_file_names = [path.name for path in story_files]
     
     if not story_file_names or not stages:
-        # fallback: アルファベット順
+        # fallback: alphabetical order
         return [(file_name, {'code': '', 'name': file_name, 'story_phase': '', 'danger_level': '', 'stage_type': ''}) 
                 for file_name in sorted(story_file_names)]
     
-    # 正しい順序で取得
+    # Get in correct order
     ordered_stories = get_story_order_for_event(event_id, stages, story_file_names)
     
     result = []
     for file_name, stage_info, is_battle_story in ordered_stories:
-        # ストーリータイプを判定
+        # Determine story type
         story_type = 'story'
         if is_battle_story:
             if '_beg' in file_name:
@@ -139,7 +139,7 @@ def get_ordered_stories_for_event(event_id: str, base_path: Path) -> List[Tuple[
             elif '_end' in file_name:
                 story_type = 'end'
         
-        # 表示情報を生成
+        # Generate display information
         display_info = get_stage_display_info(stage_info, story_type)
         result.append((file_name, display_info))
     

@@ -1,110 +1,165 @@
-# Claude Code プロジェクト設定
+# Claude Code Project Settings
 
-このプロジェクトのClaude Code固有の設定と情報をまとめています。
+Claude Code specific settings and information for this project.
 
-## プロジェクト概要
+## Project Overview
 
-**アークナイツ ストーリーアーカイブ**
+**Arknights Story Archive**
 
-アークナイツのイベントストーリーをHTML形式で閲覧できる静的サイトジェネレーターです。ArknightsStoryJsonのデータを使用してストーリーを処理・生成し、GitHub Pagesで公開します。
+A static site generator for viewing Arknights event stories in HTML format. Uses ArknightsStoryJson Japanese (ja_JP) data to process and generate stories in Japanese, published on GitHub Pages.
 
-## 主要機能
+## Code Standards
 
-- **自動ストーリー順序決定**: stage_table.jsonを参照してゲーム内と同じ順序でストーリーを表示
-- **戦闘情報表示**: 戦闘前・戦闘後・間章の区別と推奨レベル表示
-- **レスポンシブデザイン**: モバイル・デスクトップ両対応
-- **自動デプロイ**: GitHub Actionsによる毎日の自動更新
+**IMPORTANT**: All git commit messages and code comments must be written in English.
+- Git commit messages: Use clear, concise English
+- Code comments: Write all comments in English
+- Variable names and function names: Use English naming conventions
+- Documentation: Technical documentation should be in English
 
-## ビルドコマンド
+## Website Content Standards
+
+**IMPORTANT**: The generated HTML website content should be in Japanese.
+- HTML templates: Use Japanese text for UI elements and labels
+- Story content: Display stories in Japanese (using ArknightsStoryJson ja_JP data)
+- Navigation: Menu items and buttons should be in Japanese
+- Error messages: User-facing error messages should be in Japanese
+- Meta information: Page titles and descriptions should be in Japanese
+
+Note: This applies only to the generated website content for end users. All source code, comments, and development documentation remain in English.
+
+## Key Features
+
+- **Automatic Story Ordering**: Display stories in game order by referencing stage_table.json
+- **Battle Information Display**: Distinguish between pre-battle, post-battle, and interlude chapters with recommended level display
+- **Responsive Design**: Compatible with both mobile and desktop
+- **Automatic Deployment**: Daily automatic updates via GitHub Actions
+
+## Build Commands
 
 ```bash
-# 全イベントのビルド
+# Install dependencies
+pip install -r requirements.txt
+
+# Build all events
 python3 build.py
 
-# テスト用（少数イベント）
+# Test build (limited events)
 python3 build.py --limit 5
 
-# クリーンビルド
+# Clean build
 python3 build.py --clean
 
-# 依存関係のインストール
-pip install -r requirements.txt
+# Start local preview server
+python3 preview.py
 ```
 
-## テストコマンド
+## Local Preview
+
+### Starting the Preview Server
 
 ```bash
-# 依存関係が正しくインストールされているかチェック
+# Basic usage (opens browser automatically on port 8000)
+python3 preview.py
+
+# Custom port
+python3 preview.py --port 3000
+
+# Don't open browser automatically
+python3 preview.py --no-browser
+
+# Allow external connections
+python3 preview.py --host 0.0.0.0
+```
+
+### Development Workflow
+
+1. **Build the site**: `python3 build.py --limit 5`
+2. **Start preview server**: `python3 preview.py`
+3. **Make code changes**
+4. **Rebuild**: `python3 build.py --limit 5`
+5. **Refresh browser** to see changes
+
+**Important**: You must run `python3 build.py` first to generate the `dist/` directory before using the preview server.
+
+## Test Commands
+
+```bash
+# Check if dependencies are correctly installed
 python3 -c "import jinja2, pathlib; print('Dependencies OK')"
 
-# ビルドシステムの動作確認
+# Verify build system functionality
 python3 build.py --limit 1
 
-# サブモジュールの更新
+# Update submodules
 git submodule update --remote --merge
 ```
 
-## 重要なファイル
+## Important Files
 
-### データ処理
-- `src/lib/stage_parser.py` - ステージ情報とストーリー順序決定
-- `src/lib/event_parser.py` - イベント情報の処理
-- `src/lib/story_parser.py` - ストーリーデータの解析
+### Data Processing
+- `src/lib/stage_parser.py` - Stage information and story order determination
+- `src/lib/event_parser.py` - Event information processing
+- `src/lib/story_parser.py` - Story data analysis
 
-### HTML生成
-- `src/generators/` - HTML生成モジュール群
-- `templates/` - Jinja2テンプレート
-- `static/css/` - スタイルシート
+### HTML Generation
+- `src/generators/` - HTML generation modules
+- `templates/` - Jinja2 templates
+- `static/css/` - Stylesheets
 
-### 設定・ビルド
-- `build.py` - メインビルドスクリプト
-- `src/config.py` - 設定ファイル
-- `.github/workflows/deploy.yml` - GitHub Actions設定
+### Configuration & Build
+- `build.py` - Main build script
+- `preview.py` - Local preview server with auto-browser opening
+- `src/config.py` - Configuration file
+- `.github/workflows/deploy.yml` - GitHub Actions configuration
 
-## 開発時の注意事項
+## Development Notes
 
-1. **サブモジュール**: ArknightsStoryJsonデータは外部サブモジュールです
+1. **Submodules**: ArknightsStoryJson data is an external submodule
    ```bash
    git submodule update --init --recursive
    ```
 
-2. **Python要件**: Python 3.8以上を使用してください
+2. **Python Requirements**: Use Python 3.8 or higher
 
-3. **ビルド前の確認**: 
-   - `data/ArknightsStoryJson`ディレクトリが存在することを確認
-   - requirements.txtの依存関係をインストール済みであることを確認
+3. **Pre-build Verification**: 
+   - Confirm `data/ArknightsStoryJson` directory exists
+   - Ensure requirements.txt dependencies are installed
 
-4. **HTMLファイル名**: 
-   - イベントページ: `events/{event_id}/index.html`
-   - ストーリーページ: `events/{event_id}/stories/{stage_code}.html`
-   - ステージコード（OR-1、OR-ST-1等）がファイル名として使用されます
+4. **HTML File Names**: 
+   - Event pages: `events/{event_id}/index.html`
+   - Story pages: `events/{event_id}/stories/{stage_code}.html`
+   - Stage codes (OR-1, OR-ST-1, etc.) are used as file names
 
-## トラブルシューティング
+## Troubleshooting
 
-### よくある問題と解決法
+### Common Issues and Solutions
 
 1. **ImportError**: 
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **サブモジュールが空**:
+2. **Empty Submodule**:
    ```bash
    git submodule update --init --recursive
    ```
 
-3. **ビルドエラー**:
-   - Python 3.8以上を使用していることを確認
-   - `data/ArknightsStoryJson`が存在することを確認
+3. **Build Error**:
+   - Confirm using Python 3.8 or higher
+   - Verify `data/ArknightsStoryJson` exists
 
-## デプロイメント
+4. **Preview Server Error**:
+   - Run `python3 build.py` first to generate the site
+   - If port is in use, try: `python3 preview.py --port 8001`
 
-- **自動デプロイ**: mainブランチへのプッシュで自動実行
-- **手動デプロイ**: `./scripts/deploy.sh`を実行
-- **GitHub Pages**: Actions経由で自動設定
+## Deployment
 
-## ライセンスと免責事項
+- **Automatic Deployment**: Triggered automatically on push to main branch
+- **Manual Deployment**: Run `./scripts/deploy.sh`
+- **GitHub Pages**: Automatically configured via Actions
 
-- 非公式のファンプロジェクトです
-- ストーリーデータはArknightsStoryJsonプロジェクトを使用
-- アークナイツの著作権はHypergryphに帰属
+## License and Disclaimer
+
+- This is an unofficial fan project
+- Story data uses the ArknightsStoryJson project
+- Arknights copyright belongs to Hypergryph

@@ -22,7 +22,7 @@ class StageInfo:
     level_id: Optional[str] = None
 
 def load_stage_table(data_path: Path) -> Dict[str, StageInfo]:
-    """stage_table.jsonを読み込んでStageInfoオブジェクトの辞書を返す"""
+    """Load stage_table.json and return dictionary of StageInfo objects"""
     stage_table_path = data_path / "gamedata" / "excel" / "stage_table.json"
     data = load_json(stage_table_path)
     if not data:
@@ -55,7 +55,7 @@ def load_stage_table(data_path: Path) -> Dict[str, StageInfo]:
     return stages
 
 def build_stage_dependency_graph(stages: Dict[str, StageInfo]) -> Dict[str, List[str]]:
-    """ステージの依存関係グラフを構築する"""
+    """Build stage dependency graph"""
     graph = {}
     
     for stage_id, stage_info in stages.items():
@@ -70,22 +70,22 @@ def build_stage_dependency_graph(stages: Dict[str, StageInfo]) -> Dict[str, List
 def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo], 
                             story_files: List[str]) -> List[Tuple[str, str, bool]]:
     """
-    イベントのストーリーファイルを正しい順序でソートする
+    Sort event story files in correct order
     
     Returns:
-        List[Tuple[str, str, bool]]: (file_name, stage_info, is_battle_story)のリスト
+        List[Tuple[str, str, bool]]: List of (file_name, stage_info, is_battle_story)
     """
-    # イベント関連のステージを抽出
+    # Extract event-related stages
     event_stages = {
         stage_id: stage_info 
         for stage_id, stage_info in stages.items()
         if stage_info.zone_id.startswith(event_id)
     }
     
-    # ストーリーファイルとステージの対応を作成
+    # Create mapping between story files and stages
     story_stage_mapping = {}
     for file_name in story_files:
-        # ファイル名からステージIDを抽出
+        # Extract stage ID from filename
         # level_act40side_01_beg.json -> act40side_01
         # level_act40side_st01.json -> act40side_st01
         base_name = file_name.replace('level_', '').replace('.json', '')
@@ -97,24 +97,24 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
             stage_id = base_name.replace('_end', '')
             story_stage_mapping[file_name] = (stage_id, 'end')
         else:
-            # ストーリー専用ステージ
+            # Story-only stage
             story_stage_mapping[file_name] = (base_name, 'story')
     
-    # トポロジカルソート用の依存関係グラフを構築
+    # Build dependency graph for topological sort
     dependency_graph = build_stage_dependency_graph(event_stages)
     
-    # トポロジカルソート実行（依存関係を逆にして正しい順序にする）
+    # Execute topological sort (reverse dependencies for correct order)
     ordered_stages = topological_sort(dependency_graph)
-    ordered_stages.reverse()  # 開始ステージから終了ステージの順に
+    ordered_stages.reverse()  # From start stage to end stage
     
-    # ソート結果をベースにストーリーファイルを順序付け
+    # Order story files based on sort results
     ordered_stories = []
     
     for stage_id in ordered_stages:
         if stage_id in event_stages:
             stage_info = event_stages[stage_id]
             
-            # 戦闘前ストーリーを探す
+            # Find pre-battle story
             beg_file = None
             end_file = None
             
@@ -125,22 +125,22 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
                     elif story_type == 'end':
                         end_file = file_name
                     elif story_type == 'story':
-                        # ストーリー専用ステージ
+                        # Story-only stage
                         ordered_stories.append((file_name, stage_info, False))
             
-            # 戦闘前ストーリーを追加
+            # Add pre-battle story
             if beg_file:
                 ordered_stories.append((beg_file, stage_info, True))
             
-            # 戦闘後ストーリーを追加
+            # Add post-battle story
             if end_file:
                 ordered_stories.append((end_file, stage_info, True))
     
     return ordered_stories
 
 def topological_sort(graph: Dict[str, List[str]]) -> List[str]:
-    """トポロジカルソート（Kahn's algorithm）"""
-    # 入次数を計算
+    """Topological sort (Kahn's algorithm)"""
+    # Calculate in-degree
     in_degree = {node: 0 for node in graph}
     
     for node in graph:
@@ -148,7 +148,7 @@ def topological_sort(graph: Dict[str, List[str]]) -> List[str]:
             if dependency in in_degree:
                 in_degree[dependency] += 1
     
-    # 入次数が0のノードを探す
+    # Find nodes with in-degree 0
     queue = [node for node, degree in in_degree.items() if degree == 0]
     result = []
     
@@ -165,7 +165,7 @@ def topological_sort(graph: Dict[str, List[str]]) -> List[str]:
     return result
 
 def get_stage_display_info(stage_info: StageInfo, story_type: str) -> Dict[str, str]:
-    """ステージ情報から表示用の情報を生成する"""
+    """Generate display information from stage info"""
     display_info = {
         'code': stage_info.code,
         'name': stage_info.name,
@@ -173,7 +173,7 @@ def get_stage_display_info(stage_info: StageInfo, story_type: str) -> Dict[str, 
         'stage_type': stage_info.stage_type
     }
     
-    # 戦闘前後やストーリー専用の区別
+    # Distinguish between pre/post-battle and story-only
     if story_type == 'beg':
         display_info['story_phase'] = '戦闘前'
     elif story_type == 'end':

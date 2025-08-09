@@ -1,6 +1,7 @@
 """Base generator class."""
 from pathlib import Path
 from typing import Dict, Any
+from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 
 from ..config import TEMPLATE_PATH, DEFAULT_ENCODING
@@ -33,8 +34,11 @@ class BaseGenerator:
         Returns:
             Rendered HTML string
         """
+        # Add build context to all templates
+        full_context = {**context, **self.get_build_context()}
+        
         template = self.env.get_template(template_name)
-        return template.render(**context)
+        return template.render(**full_context)
     
     def write_html_file(self, content: str, output_path: Path) -> None:
         """
@@ -68,4 +72,15 @@ class BaseGenerator:
             'css_path': f"{relative_root}static/css/",
             'js_path': f"{relative_root}static/js/",
             'root_path': relative_root
+        }
+    
+    def get_build_context(self) -> Dict[str, Any]:
+        """
+        Get build-specific context variables.
+        
+        Returns:
+            Dictionary with build information
+        """
+        return {
+            'build_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
         }

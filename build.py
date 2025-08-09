@@ -14,6 +14,7 @@ from src.lib.story_parser import parse_event_stories
 from src.generators.index_generator import IndexGenerator
 from src.generators.event_generator import EventGenerator
 from src.generators.story_generator import StoryGenerator
+from src.generators.search_index import SearchIndexGenerator
 from src.utils.file_utils import clean_directory, copy_static_files
 
 
@@ -76,6 +77,11 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None):
     index_gen = IndexGenerator()
     event_gen = EventGenerator()
     story_gen = StoryGenerator()
+    search_gen = SearchIndexGenerator()
+    
+    # Generate search index
+    print("Generating search index...")
+    search_gen.generate(events, DIST_PATH)
     
     # Generate index page
     print("Generating index page...")
