@@ -607,7 +607,7 @@ body {
     box-shadow: var(--shadow);
 }
 
-.story-header {
+.story-item .story-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;

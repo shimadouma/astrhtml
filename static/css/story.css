@@ -19,6 +19,7 @@ html[data-theme="dark"] body {
 }
 
 .story-header {
+    display: block; /* Override any flex from main.css */
     border-bottom: 2px solid var(--border-color);
     padding-bottom: 1.5rem;
     margin-bottom: 2rem;
@@ -54,13 +55,18 @@ html[data-theme="dark"] .story-header h2 {
 }
 
 .story-info {
+    display: block;
+    clear: both;
     background-color: var(--hover-color);
     padding: 1rem;
     border-radius: 4px;
     border-left: 4px solid var(--secondary-color);
+    margin-top: 1rem;
 }
 
 .story-info p {
+    display: block;
+    margin: 0;
     color: var(--text-color);
     opacity: 0.8;
     line-height: 1.8;
