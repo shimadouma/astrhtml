@@ -144,11 +144,35 @@
   - [x] GitHub Pages設定方法
 
 ### フェーズ7: 機能拡張（オプション）
-- [ ] 検索機能の実装
-  - [ ] `static/js/search.js` - クライアントサイド検索
-  - [ ] `src/generators/search_index.py` - 検索インデックス生成
-- [ ] フィルタリング機能（イベント期間、タイプ等）
-- [ ] ダークモード対応
+- [x] 検索機能の実装
+  - [x] `static/js/search.js` - クライアントサイド検索
+  - [x] `src/generators/search_index.py` - 検索インデックス生成
+  - [x] 検索データの自動生成（events, stories）
+  - [x] リアルタイム検索とハイライト機能
+- [x] フィルタリング機能（イベント期間、タイプ等）
+  - [x] `static/js/filters.js` - イベントタイプと年別フィルタ
+  - [x] 検索との連携機能
+- [x] ダークモード対応
+  - [x] `static/js/theme.js` - テーマ切り替え機能
+  - [x] CSS変数を使ったダーク/ライトテーマ
+  - [x] LocalStorageでの設定保存
+  - [x] ダークモード色彩の改善・調整
+    - [x] 背景色とテキスト色のコントラスト調整（完全な白黒を避けた目に優しい色設定）
+    - [x] カード背景色の統一（`var(--card-background)`使用）
+    - [x] ストーリーページ（`story.css`）の完全ダークモード対応
+    - [x] リンク色の可読性向上（明るい青 `#4299e1`）
+    - [x] ボタン類の色調整（背景・テキストコントラスト改善）
+    - [x] ストーリーヘッダー（`h2`）の色調整
+    - [x] 話者名（`.speaker`）の色調整
+    - [x] 各種UI要素の統一感のある色設定
+- [x] フォント切替機能
+  - [x] `static/js/font.js` - フォント切り替え機能
+  - [x] ゴシック体モード（OS標準san-serif）
+  - [x] 明朝体モード（読みやすいWebフォント：Noto Serif JP, Crimson Text）
+  - [x] LocalStorageでの設定保存
+  - [x] ヘッダーにフォント切替トグルボタン追加
+  - [x] CSS変数を使ったフォントファミリー制御
+  - [x] レスポンシブ対応（モバイル表示調整）
 - [ ] 実装見送り: プログレッシブウェブアプリ（PWA）対応
   - [ ] `static/manifest.json` - PWAマニフェスト
   - [ ] `static/sw.js` - Service Worker
@@ -158,7 +182,9 @@
 - **テンプレートエンジン**: Jinja2
 - **静的サイトジェネレーター**: カスタム実装（Python）
 - **デプロイ**: GitHub Pages + GitHub Actions
-- **スタイリング**: Pure CSS (またはBootstrap等を検討)
+- **スタイリング**: Pure CSS（CSS変数によるテーマシステム）
+- **フロントエンド機能**: Vanilla JavaScript（テーマ切り替え、フォント切り替え、検索、フィルタリング）
+- **フォント**: Google Fonts（Noto Serif JP、Crimson Text）
 - **主要Pythonパッケージ**:
   - Jinja2 - HTMLテンプレート処理
   - python-dateutil - 日付処理
@@ -292,6 +318,55 @@ ArknightsStoryJsonのデータ構造を詳しく調査した結果、以下の�
 # 4. _beg → _end の順序を保証
 # 5. ストーリー専用ステージを適切な位置に配置
 ```
+
+## UI/UX機能詳細
+
+### ダークモード実装詳細
+プロジェクト要件の「ナイトモード」として実装。完全な白黒を避け、目に優しい色彩設計を採用。
+
+#### 色彩設計原則
+- **背景色**: `#1a1a1a`（深い黒） → `#2d3748`（カード背景、適度なコントラスト）
+- **テキスト色**: `#e2e8f0`（オフホワイト、完全な白を避ける）
+- **アクセント色**: `#4299e1`（明るい青、リンクと重要要素）
+- **境界線・装飾**: `#4a5568`（中間グレー）
+
+#### CSS変数システム
+```css
+:root {
+  --background-color: #f5f5f5;
+  --text-color: #333;
+  --card-background: #fff;
+  --border-color: #ddd;
+  /* 他の変数... */
+}
+
+[data-theme="dark"] {
+  --background-color: #1a1a1a;
+  --text-color: #e2e8f0;
+  --card-background: #2d3748;
+  --border-color: #4a5568;
+  /* ダークモード用の値... */
+}
+```
+
+#### 対応済み要素
+- メインコンテンツ背景（`.story-content`）
+- ダイアログブロック（`.dialog-block`）
+- ボタン類（`.btn-primary`、`.btn-secondary`、`.btn-back`）
+- ストーリーヘッダー（`.story-header h2`）
+- 話者名（`.speaker`）
+- ナビゲーション要素全般
+- フォーム要素（検索入力、フィルター選択）
+
+### フォント切り替え実装
+プロジェクト要件の「フォント切り替え」機能として実装。
+
+#### フォント選定
+- **ゴシック体モード**: OS標準san-serif（`system-ui`, `-apple-system`, `'Segoe UI'`, `'Roboto'`等）
+- **明朝体モード**: 読みやすいWebフォント
+  - 日本語: `Noto Serif JP`（Google Fonts）
+  - 欧文: `Crimson Text`（Google Fonts）
+  - フォールバック: `'Georgia'`, `'Times New Roman'`, `'Yu Mincho'`等
 
 ## 注意事項
 - ArknightsStoryJsonのライセンスを確認し、適切にクレジット表記を行う
