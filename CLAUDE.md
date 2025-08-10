@@ -139,6 +139,71 @@ python3 scripts/check_links.py --fail-on-broken
 - Fix any broken links immediately
 - Never deploy with broken links
 
+## Event Story Validation
+
+**IMPORTANT**: Always validate that all events have stories AND proper linking to ensure complete story generation.
+
+### Enhanced Event Validation
+
+Use the enhanced event validator to identify comprehensive story generation issues:
+
+```bash
+# Check for event story generation and linking issues
+python3 scripts/check_empty_events.py
+
+# This script performs comprehensive validation:
+# - Checks all event directories in dist/events/
+# - Verifies story files exist in stories/ directories
+# - Validates that all story files are properly linked in event index pages
+# - Identifies broken links and missing story references
+# - Categorizes issues: no files, unlinked files, partial linking, broken links
+# - Provides detailed diagnostics and troubleshooting recommendations
+# - Exits with error code if any issues are found
+```
+
+### Validation Categories
+
+The script identifies several types of issues:
+
+1. **Events with No Story Files**: No story files exist in the stories/ directory
+2. **Events with Unlinked Stories**: Story files exist but are not linked in the event index page
+3. **Events with Partial Linking**: Some stories are linked, but others are missing from the index
+4. **Events with Broken Links**: Index page links to non-existent story files
+
+### Development Workflow with Enhanced Event Validation
+
+**During development and testing, always verify complete story generation:**
+
+1. **Build the site**: `python3 build.py --limit 5`
+2. **Run enhanced validation**: `python3 scripts/check_empty_events.py`
+3. **Fix any issues found**:
+   - **No files**: Check story data processing logic
+   - **Unlinked files**: Verify event page generation and template rendering
+   - **Partial linking**: Check story order determination logic
+   - **Broken links**: Verify filename generation consistency
+4. **Rebuild and verify**: `python3 build.py --limit 5`
+
+**Before deploying or committing changes:**
+- Always run the enhanced validation after a full build
+- Investigate and fix all categories of issues
+- Ensure 100% success rate (all events properly linked)
+
+### Common Issue Causes and Solutions
+
+**Events with story files but no links (Critical)**:
+- Event page generation logic not creating story list
+- Template rendering issues in story section
+- Story order determination returning empty results
+- Event type detection affecting processing
+
+**Events with some unlinked stories (Warning)**:
+- Story order logic missing certain file types
+- Filename pattern mismatches
+- Special stage types not being processed
+- Stage mapping inconsistencies
+
+**Automated Validation**: The enhanced validator is integrated into GitHub Actions to prevent deployment of sites with story linking issues.
+
 ## Important Files
 
 ### Data Processing
@@ -155,6 +220,7 @@ python3 scripts/check_links.py --fail-on-broken
 - `build.py` - Main build script with integrated link checking
 - `preview.py` - Local preview server with auto-browser opening
 - `scripts/check_links.py` - Link health check script
+- `scripts/check_empty_events.py` - Enhanced event story validation script
 - `src/config.py` - Configuration file
 - `.github/workflows/deploy.yml` - GitHub Actions configuration
 
