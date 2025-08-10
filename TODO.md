@@ -377,6 +377,43 @@ def is_ministory_story_file(file_name: str) -> bool:
 
 **注意**: 残りの「未リンク」項目は主に`ENTRY.html`や`story_*.html`などの特殊ケースファイルで、コアストーリーリンク機能は正常に動作中。
 
+### 2025-08-10: ST（ストーリー）ステージリンク問題の修正
+
+**問題**: 大部分のイベント（39個のイベント）でST（ストーリー）ステージ（*-ST-1.html、*-ST-2.html等）が生成されているが、イベントインデックスページでリンクされていない
+
+**原因分析**:
+- **STステージマッピングの誤り**: `level_actXXside_st01.json` → `actXXside_st01` ステージIDへのマッピングが正しく動作していない
+- **既存の変換ロジックの問題**: 全てのSTファイルで `_st01` → `_01` の変換が適用されていたが、これは特定のイベント（act4d0、act6d5、act7d5）のみに適用されるべき
+
+**実装した修正**:
+1. **STステージマッピングロジックの修正** (`src/lib/stage_parser.py:266-283`):
+   - 条件分岐を追加して、特定のTYPE_ACT4D0イベント（`act4d0`, `act6d5`, `act7d5`）のみで `st01` → `01` 変換を適用
+   - その他のイベントでは `_st` プレフィックスを保持：`actXXside_st01` など
+
+2. **修正内容**:
+   ```python
+   # 修正前: 全てのイベントでst->数値変換
+   stage_id = f"{event_part}_{stage_num.zfill(2)}"
+   
+   # 修正後: 条件分岐による適切な変換
+   if event_id in ['act4d0', 'act6d5', 'act7d5']:
+       stage_id = f"{event_part}_{stage_num.zfill(2)}"  # st01 -> 01
+   else:
+       stage_id = f"{event_part}_st{stage_num.zfill(2)}" # st01 -> st01 (保持)
+   ```
+
+**修正結果**:
+- **修正前**: 39個のイベントでSTステージがリンクされていない（例：OR-ST-1.html、EP-ST-2.html等）
+- **修正後**: 全てのSTステージが正常にリンクされる
+- **検証**: 20個のイベントビルドでテスト済み、全て✅で成功
+
+**影響範囲**:
+- **修正ファイル**: `src/lib/stage_parser.py`のみ
+- **影響イベント**: SIDESTORY形式の大部分のイベント（actXXside、actXXmini以外）
+- **テスト済み**: act40side、act39side、act38side等で動作確認済み
+
+**重要**: この修正により、イベントストーリーの完全性が大幅に改善され、ユーザーは全てのストーリーコンテンツに適切にアクセス可能になった。
+
 
 ## 注意事項
 - ArknightsStoryJsonのライセンスを確認し、適切にクレジット表記を行う

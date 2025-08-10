@@ -264,14 +264,22 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
             story_stage_mapping[file_name] = (stage_id, 'story')
             
             # Special handling for events with st pattern in story-only files
-            # These events have story files like level_act4d0_st01.json but stages like act4d0_01
+            # Most events with _st pattern should keep the _st prefix in the stage ID
+            # Only specific events like act4d0, act6d5, act7d5 need st->numeric transformation
             if '_st' in base_name and event_type != 'MINISTORY':
                 import re
                 match = re.match(r'(.+)_st(\d+)', base_name)
                 if match:
                     event_part, stage_num = match.groups()
-                    # For these events, st01 -> 01, st02 -> 02, etc.
-                    stage_id = f"{event_part}_{stage_num.zfill(2)}"
+                    
+                    # Only transform st->numeric for specific TYPE_ACT4D0 events
+                    if event_id in ['act4d0', 'act6d5', 'act7d5']:
+                        # For these events, st01 -> 01, st02 -> 02, etc.
+                        stage_id = f"{event_part}_{stage_num.zfill(2)}"
+                    else:
+                        # For most events, keep the _st prefix: act40side_st01, etc.
+                        stage_id = f"{event_part}_st{stage_num.zfill(2)}"
+                    
                     story_stage_mapping[file_name] = (stage_id, 'story')
         
         # Apply stage ID transformations for special cases
