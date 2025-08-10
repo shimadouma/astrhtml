@@ -26,7 +26,7 @@ from src.generators.bookmark_generator import BookmarkGenerator
 from src.utils.file_utils import clean_directory, copy_static_files
 
 
-def build_site(clean: bool = CLEAN_BUILD, limit: int = None, 
+def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = None,
                include_main: bool = INCLUDE_MAIN_STORY_BY_DEFAULT, main_only: bool = False, 
                main_chapters: list = None, check_links: bool = True):
     """
@@ -35,6 +35,7 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None,
     Args:
         clean: Whether to clean dist directory first
         limit: Limit number of events to process (for testing)
+        event_id: Build only specific event by ID
         include_main: Whether to include main story
         main_only: Whether to build only main story (skip events)
         main_chapters: List of specific chapters to build (e.g., [0, 1, 2])
@@ -69,18 +70,27 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None,
                 events = [e for e in events if not e.activity_info.is_replicate]
                 print(f"Filtered to {len(events)} non-replicate events")
             
-            # Sort events
-            if SORT_EVENTS_BY_DATE:
-                events = sort_events_by_date(events, reverse=True)
-            
-            # Limit events if specified
-            if limit:
-                events = events[:limit]
-                print(f"Processing first {limit} events")
+            # Filter to specific event if specified
+            if event_id:
+                events = [e for e in events if e.event_id == event_id]
+                if not events:
+                    print(f"Error: Event '{event_id}' not found!")
+                    return
+                else:
+                    print(f"Found event: {events[0].event_name}")
+            else:
+                # Sort events
+                if SORT_EVENTS_BY_DATE:
+                    events = sort_events_by_date(events, reverse=True)
+                
+                # Limit events if specified
+                if limit:
+                    events = events[:limit]
+                    print(f"Processing first {limit} events")
     
-    # Load main story data if requested
+    # Load main story data if requested (but not when building specific event)
     main_story_activities = []
-    if include_main or main_only:
+    if (include_main or main_only) and not event_id:
         print("\nLoading main story data...")
         
         # Load zone and stage data
@@ -282,6 +292,7 @@ def main():
         build_site(
             clean=not args.no_clean,
             limit=args.limit,
+            event_id=args.event,
             include_main=args.include_main if args.include_main else INCLUDE_MAIN_STORY_BY_DEFAULT,
             main_only=args.main_only,
             main_chapters=main_chapters,
