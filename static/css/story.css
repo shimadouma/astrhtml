@@ -151,16 +151,6 @@ html[data-theme="dark"] .speaker {
     line-height: 1.6;
 }
 
-/* Character Notes */
-.character-note {
-    text-align: center;
-    margin: 1rem 0;
-    color: var(--text-color);
-    opacity: 0.7;
-    font-size: 0.9rem;
-    font-style: italic;
-}
-
 /* Story Navigation */
 .story-footer {
     margin-top: 3rem;

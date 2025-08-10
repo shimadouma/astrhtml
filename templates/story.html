@@ -56,10 +56,6 @@
                     <p class="subtitle-text">{{ item.text|safe }}</p>
                 </div>
                 
-                {% elif item.type == 'character' %}
-                <div class="character-note">
-                    <p>【登場: {{ item.characters|join(', ') }}】</p>
-                </div>
                 {% endif %}
             {% endfor %}
         </section>
