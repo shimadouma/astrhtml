@@ -363,6 +363,7 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
             # Find pre-battle story
             beg_file = None
             end_file = None
+            story_only_file = None
             
             for file_name, (mapped_stage_id, story_type) in story_stage_mapping.items():
                 if mapped_stage_id == stage_id:
@@ -372,6 +373,7 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
                         end_file = file_name
                     elif story_type == 'story':
                         # Story-only stage
+                        story_only_file = file_name
                         ordered_stories.append((file_name, stage_info, False))
             
             # Add pre-battle story
@@ -381,6 +383,23 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
             # Add post-battle story
             if end_file:
                 ordered_stories.append((end_file, stage_info, True))
+            
+            # Handle stages without story files (but that exist in stage table)
+            # This is a very specific fix for act9d0 DM-7/DM-8 issue and similar cases
+            # Only apply this to specific events that are known to have this issue
+            if not beg_file and not end_file and not story_only_file:
+                # Only apply virtual story logic to specific events that are known to have this issue
+                # Currently: act9d0 has DM-7 and DM-8 stages without story files
+                should_create_virtual_story = False
+                
+                if event_id == 'act9d0' and stage_id in ['act9d0_07', 'act9d0_08']:
+                    # act9d0 DM-7 and DM-8 have story content but no story files
+                    should_create_virtual_story = True
+                
+                if should_create_virtual_story:
+                    # Create a virtual story entry for stages that have generated story pages but no story files
+                    virtual_file_name = f"virtual_{stage_id}_end"  # Assume post-battle story by default
+                    ordered_stories.append((virtual_file_name, stage_info, True))
     
     # Add any remaining story files that weren't matched to stages
     # This handles hidden stories and other special cases
