@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 import json
+import re
 from pathlib import Path
 
 from .data_loader import load_json
@@ -200,6 +201,16 @@ def get_event_related_stages(event_id: str, stages: Dict[str, StageInfo]) -> Dic
     
     return event_stages
 
+def natural_sort_key(text: str) -> List:
+    """
+    Generate a key for natural sorting that handles numbers correctly.
+    For example: ['act17side_01', 'act17side_02', ..., 'act17side_10']
+    """
+    def convert(text):
+        return int(text) if text.isdigit() else text.lower()
+    
+    return [convert(c) for c in re.split('([0-9]+)', text)]
+
 def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo], 
                             story_files: List[str], event_type: str = None) -> List[Tuple[str, str, bool]]:
     """
@@ -275,10 +286,21 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
                 stage_id = base_name
             story_stage_mapping[file_name] = (stage_id, 'story')
             
+            # Special handling for hidden_st pattern (hidden stories)
+            # level_act13side_hidden_st01.json -> generates story_0.html
+            if '_hidden_st' in base_name:
+                import re
+                match = re.match(r'(.+)_hidden_st(\d+)', base_name)
+                if match:
+                    event_part, stage_num = match.groups()
+                    # Map hidden_st01 -> story_0, hidden_st02 -> story_1, etc. (0-indexed)
+                    stage_id = f"story_{int(stage_num) - 1}"
+                    story_stage_mapping[file_name] = (stage_id, 'story')
+            
             # Special handling for events with st pattern in story-only files
             # Most events with _st pattern should keep the _st prefix in the stage ID
             # Only specific events like act4d0, act6d5, act7d5 need st->numeric transformation
-            if '_st' in base_name and event_type != 'MINISTORY':
+            elif '_st' in base_name and event_type != 'MINISTORY':
                 import re
                 match = re.match(r'(.+)_st(\d+)', base_name)
                 if match:
@@ -314,6 +336,22 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
     # Execute topological sort (reverse dependencies for correct order)
     ordered_stages = topological_sort(dependency_graph)
     ordered_stages.reverse()  # From start stage to end stage
+    
+    # For events with mixed dependencies (some stages have deps, some don't),
+    # sort the stages that have no dependencies by stage ID
+    stages_with_no_deps = [stage_id for stage_id, deps in dependency_graph.items() if len(deps) == 0]
+    stages_with_deps = [stage_id for stage_id, deps in dependency_graph.items() if len(deps) > 0]
+    
+    if stages_with_no_deps and stages_with_deps:
+        # Mixed dependencies: sort stages without dependencies naturally,
+        # keep topological order for stages with dependencies
+        sorted_no_deps = sorted(stages_with_no_deps, key=lambda x: natural_sort_key(x))
+        sorted_with_deps = [stage for stage in ordered_stages if stage in stages_with_deps]
+        # Combine: main story stages first, then dependent stages
+        ordered_stages = sorted_no_deps + sorted_with_deps
+    elif not stages_with_deps:
+        # All stages have no dependencies, sort all by stage ID
+        ordered_stages = sorted(event_stages.keys(), key=lambda x: natural_sort_key(x))
     
     # Order story files based on sort results
     ordered_stories = []
@@ -370,7 +408,28 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
                     # Create virtual stage info for hidden stories
                     virtual_stage_code = mapped_stage_id.split('_')[-1].upper()  # s01 -> S01
                     if virtual_stage_code.startswith('S'):
-                        virtual_stage_code = f"TW-{virtual_stage_code}"  # S01 -> TW-S01, S02 -> TW-S02
+                        # Determine the correct event prefix by looking at existing event stages
+                        event_prefix = "TW"  # default fallback
+                        
+                        # Look for any existing stage in event_stages to get the correct prefix
+                        for existing_stage in event_stages.values():
+                            if existing_stage.code and '-' in existing_stage.code:
+                                # Extract prefix from existing stage code (e.g., "SN-1" -> "SN")
+                                event_prefix = existing_stage.code.split('-')[0]
+                                break
+                        
+                        # Format the stage number properly (S01 -> ST-1, S02 -> ST-2, etc.)
+                        stage_num = virtual_stage_code[1:]  # Remove 'S' prefix
+                        try:
+                            stage_num_int = int(stage_num)
+                            virtual_stage_code = f"{event_prefix}-ST-{stage_num_int}"
+                        except ValueError:
+                            # If stage_num contains non-numeric characters, use it as-is
+                            virtual_stage_code = f"{event_prefix}-S{stage_num}"
+                    elif mapped_stage_id.startswith('story_'):
+                        # For story_0, story_1, etc. (hidden stories)
+                        story_num = mapped_stage_id.split('_')[-1]
+                        virtual_stage_code = f"逆行{int(story_num) + 1}"  # story_0 -> 逆行1, story_1 -> 逆行2
                     
                     virtual_stage = StageInfo(
                         stage_id=mapped_stage_id,
@@ -431,8 +490,11 @@ def topological_sort(graph: Dict[str, List[str]]) -> List[str]:
 
 def get_stage_display_info(stage_info: StageInfo, story_type: str) -> Dict[str, str]:
     """Generate display information from stage info"""
+    # For story_X stage IDs (hidden stories), use the stage ID as code instead of display code  
+    code = stage_info.stage_id if stage_info.stage_id.startswith('story_') else stage_info.code
+    
     display_info = {
-        'code': stage_info.code,
+        'code': code,
         'name': stage_info.name,
         'danger_level': stage_info.danger_level,
         'stage_type': stage_info.stage_type

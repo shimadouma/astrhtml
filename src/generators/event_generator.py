@@ -51,12 +51,24 @@ class EventGenerator(BaseGenerator):
                         story = event.stories[file_index]
             else:
                 # Regular matching for non-MINISTORY events
+                # First try to match by story code
+                stage_code = stage_info.get('code', '')
                 for s in event.stories:
-                    # Match by story code instead of file name
-                    stage_code = stage_info.get('code', '')
                     if s.story_code == stage_code:
                         story = s
                         break
+                
+                # If no match by stage code, try matching by filename for hidden stories
+                if not story:
+                    story_file_name = Path(file_name).name
+                    for story_file in event.story_files:
+                        if story_file.name == story_file_name:
+                            matching_file = story_file
+                            # Find story that corresponds to this file (by index)
+                            file_index = list(event.story_files).index(matching_file)
+                            if file_index < len(event.stories):
+                                story = event.stories[file_index]
+                                break
             
             # Generate story data
             if story:
@@ -72,6 +84,10 @@ class EventGenerator(BaseGenerator):
                     actual_file_name = f"story_{file_index}"
                     # Use the actual story name from JSON storyName field
                     display_title = story.story_name if story.story_name else stage_info.get('name', f'シナリオ {file_index + 1}')
+                elif story.story_code and story.story_code.startswith('story_'):
+                    # For hidden stories mapped to story_X pattern
+                    actual_file_name = story.story_code
+                    display_title = story.story_name if story.story_name else stage_info.get('name', f'隠しストーリー {story.story_code.split("_")[-1]}')
                 else:
                     # Regular logic for non-MINISTORY events
                     actual_file_name = story.story_code if story.story_code else stage_info.get('code', Path(file_name).stem)

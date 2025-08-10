@@ -35,13 +35,16 @@ class StoryGenerator(BaseGenerator):
         
         # Generate each story page
         for i, story in enumerate(stories):
-            # Determine file name based on event type
+            # Determine file name based on event type and story code
             if event.activity_info.type == 'MINISTORY':
                 # For MINISTORY, use ST-1, ST-2, etc. as filename
                 file_name = f"ST-{i+1}"
             elif event.activity_info.type == 'TYPE_ACT4D0':
                 # For TYPE_ACT4D0, use story_0, story_1, etc. as filename (0-indexed)
                 file_name = f"story_{i}"
+            elif story.story_code and story.story_code.startswith('story_'):
+                # For hidden stories mapped to story_X pattern
+                file_name = story.story_code
             else:
                 # Regular logic for other events
                 file_name = Path(story.story_code).stem if story.story_code else f"story_{i}"
