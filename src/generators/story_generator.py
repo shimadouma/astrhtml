@@ -25,30 +25,50 @@ class StoryGenerator(BaseGenerator):
         stories_dir = output_path / 'events' / event.event_id / 'stories'
         stories_dir.mkdir(parents=True, exist_ok=True)
         
-        # Get sorted stories
-        stories = event.get_sorted_stories()
+        # Get stories in correct order for MINISTORY vs regular events
+        if event.activity_info.type == 'MINISTORY':
+            # For MINISTORY events, preserve the original file order since stories are already ordered correctly
+            stories = event.stories
+        else:
+            # Get sorted stories for regular events
+            stories = event.get_sorted_stories()
         
         # Generate each story page
         for i, story in enumerate(stories):
-            # Determine file name
-            file_name = Path(story.story_code).stem if story.story_code else f"story_{i}"
+            # Determine file name based on event type
+            if event.activity_info.type == 'MINISTORY':
+                # For MINISTORY, use ST-1, ST-2, etc. as filename
+                file_name = f"ST-{i+1}"
+            else:
+                # Regular logic for other events
+                file_name = Path(story.story_code).stem if story.story_code else f"story_{i}"
             
             # Get previous and next stories
             prev_story = None
             next_story = None
             
             if i > 0:
-                prev_story_code = stories[i-1].story_code
+                if hasattr(event, 'activity_info') and event.activity_info.type == 'MINISTORY':
+                    prev_file_name = f"ST-{i}"
+                else:
+                    prev_story_code = stories[i-1].story_code
+                    prev_file_name = Path(prev_story_code).stem if prev_story_code else f"story_{i-1}"
+                
                 prev_story = {
                     'story_name': stories[i-1].story_name,
-                    'file_name': Path(prev_story_code).stem if prev_story_code else f"story_{i-1}"
+                    'file_name': prev_file_name
                 }
             
             if i < len(stories) - 1:
-                next_story_code = stories[i+1].story_code
+                if hasattr(event, 'activity_info') and event.activity_info.type == 'MINISTORY':
+                    next_file_name = f"ST-{i+2}"
+                else:
+                    next_story_code = stories[i+1].story_code
+                    next_file_name = Path(next_story_code).stem if next_story_code else f"story_{i+1}"
+                
                 next_story = {
                     'story_name': stories[i+1].story_name,
-                    'file_name': Path(next_story_code).stem if next_story_code else f"story_{i+1}"
+                    'file_name': next_file_name
                 }
             
             # Generate story page
@@ -139,16 +159,20 @@ class StoryGenerator(BaseGenerator):
             
             if i > 0:
                 prev_story_code = stories[i-1].story_code
+                prev_file_name = Path(prev_story_code).stem if prev_story_code else f"story_{i-1}"
+                
                 prev_story = {
                     'story_name': stories[i-1].story_name,
-                    'file_name': Path(prev_story_code).stem if prev_story_code else f"story_{i-1}"
+                    'file_name': prev_file_name
                 }
             
             if i < len(stories) - 1:
                 next_story_code = stories[i+1].story_code
+                next_file_name = Path(next_story_code).stem if next_story_code else f"story_{i+1}"
+                
                 next_story = {
                     'story_name': stories[i+1].story_name,
-                    'file_name': Path(next_story_code).stem if next_story_code else f"story_{i+1}"
+                    'file_name': next_file_name
                 }
             
             # Generate story page

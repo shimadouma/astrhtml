@@ -271,60 +271,105 @@ astrhtml/
 └── CLAUDE.md                  # Claude Code設定
 ```
 
-## MINISTORY イベント修正
+## MINISTORY イベント特殊仕様
 
-### 問題の詳細
-MINISTORY タイプのイベント（act17mini など）で、イベントページにストーリー数が0と表示される問題が発生している。
+### 重要な設計情報
+**MINISTORY形式のイベントは攻略用ステージとシナリオ用ステージが分離されている**
 
-### 原因分析
-1. **ファイル命名の不一致**:
-   - MINISTORYイベントのストーリーファイル: `level_act17mini_st01.json`, `level_act17mini_st02.json`
-   - 対応するステージID: `act17mini_01`, `act17mini_02` (stなし)
-   
-2. **stage_parser.pyの問題**:
-   - `get_story_order_for_event()`関数の`story_stage_mapping`でファイル名からステージIDへのマッピングが正しく動作していない
-   - `level_act17mini_st01.json` → `act17mini_st01` とマッピングされるが、実際のステージIDは `act17mini_01`
+#### ステージ構造の分離
+1. **攻略用ステージ（処理対象外）**:
+   - stage_table.jsonに定義されている戦闘用ステージ
+   - 例：`act15mini_01` (FD-1), `act15mini_02` (FD-2), `act15mini_s01` (FD-S-1) など
+   - プレイヤーが攻略するゲームプレイ用ステージ
+   - **これらは処理の対象外とする**
 
-### 修正計画
+2. **シナリオ用ステージ（処理対象）**:
+   - story/activities/[eventId]/level_[eventId]_st*.json ファイル
+   - 例：`level_act15mini_st01.json`, `level_act15mini_st02.json` など
+   - ストーリーコンテンツのみを含む
+   - **これらのみを処理対象とする**
 
-#### Phase 1: コア修正
-- [ ] **src/lib/stage_parser.py修正**:
-  - [ ] `get_story_order_for_event()`関数でMINISTORYファイルの特別処理を追加
-  - [ ] `level_[eventId]_st[XX].json` → `[eventId]_[XX]` のマッピングロジック実装
-  - [ ] MINISTORYイベント検出ロジック追加（activity_table.jsonのtypeフィールド参照）
+#### 具体例（act15mini）
+```
+攻略用ステージ（無視）:
+- act15mini_01 → FD-1: 繫栄滋養
+- act15mini_02 → FD-2: 辺境警邏  
+- act15mini_s01 → FD-S-1: 凍土境域
+...
 
-#### Phase 2: 動作確認
-- [ ] **テスト実装**:
-  - [ ] act17mini, act16mini, act15mini等での動作確認
-  - [ ] 既存イベント（SIDESTORY等）への影響確認
-  - [ ] ストーリー順序の正確性確認
-
-#### Phase 3: エラーハンドリング改善
-- [ ] **ログ出力強化**:
-  - [ ] ストーリーファイル0件の場合の詳細ログ出力
-  - [ ] マッピング失敗時のデバッグ情報追加
-
-### 実装詳細
-
-#### 1. MINISTORYファイルマッピング修正
-```python
-# 現在の問題のあるマッピング
-# level_act17mini_st01.json → act17mini_st01 (存在しない)
-
-# 修正後のマッピング  
-# level_act17mini_st01.json → act17mini_01 (正しいステージID)
+シナリオ用ステージ（処理対象）:
+- level_act15mini_st01.json → 対応するシナリオ専用ステージ
+- level_act15mini_st02.json → 対応するシナリオ専用ステージ
+...
 ```
 
-#### 2. イベントタイプ検出
-活動テーブルから`type: "MINISTORY"`を検出し、適切なマッピングロジックを適用する。
+### 実装上の注意点
+- MINISTORYイベントの場合、`level_*_st*.json` ファイルのみを処理する
+- 攻略用ステージとのマッピングは行わない
+- シナリオ用ステージ専用の順序決定ロジックが必要
+- 他のイベントタイプ（SIDESTORY等）には影響しない設計とする
 
-#### 3. 後方互換性
-既存のSIDESTORY、メインイベント等に影響しないよう、MINISTORYのみに特別処理を適用する。
+### 修正済み対応
+✅ **Phase 1: 基本修正完了**
+- `get_story_order_for_event()`でMINISTORY特別処理追加済み
+- ファイル名→ステージIDマッピング修正済み
+- イベントタイプ検出ロジック追加済み
+
+### 実装計画
+
+#### Phase 2: シナリオ専用ステージ処理の実装 ✅
+- [x] **stage_parser.pyの専用ロジック追加**:
+  - [x] `get_ministory_stages()` 関数追加 - シナリオステージのみを抽出
+  - [x] `get_story_order_for_event()` でMINISTORY用の分岐処理追加
+  - [x] 攻略用ステージを完全に除外し、ストーリーファイルベースで処理
+
+- [x] **シナリオステージの順序決定ロジック**:
+  - [x] story fileの命名規則（st01, st02...）による順序決定
+  - [x] stage_table.jsonの攻略ステージに依存しない独立した順序決定
+  - [x] 仮想ステージ情報（ST-1, ST-2...）の生成
+
+#### Phase 3: 実装詳細
+
+##### 3.1 専用関数の実装
+```python
+def get_ministory_stages(event_id: str, story_files: List[str]) -> List[Tuple[str, Dict]]:
+    """
+    MINISTORY専用: ストーリーファイルのみから仮想ステージ情報を生成
+    攻略用ステージは完全に無視
+    """
+    pass
+
+def is_ministory_story_file(file_name: str) -> bool:
+    """
+    MINISTORYのストーリーファイル判定（level_*_st*.json）
+    """
+    pass
+```
+
+##### 3.2 処理フロー変更
+1. **イベントタイプ判定**: `event_type == 'MINISTORY'`
+2. **ストーリーファイルのみ処理**: `level_*_st*.json` ファイルを対象
+3. **攻略ステージ除外**: stage_table.jsonの攻略ステージは参照しない
+4. **シンプルな順序決定**: ファイル名の番号順（st01, st02...）
+
+#### Phase 4: 検証・テスト ✅
+- [x] **MINISTORY専用テスト実装**:
+  - [x] 複数のMINISTORYイベント（act15mini, act16mini, act17mini）での動作確認
+  - [x] シナリオステージのみが表示されることの確認（ST-1, ST-2...形式）
+  - [x] 攻略ステージが完全に除外されることの確認
+  - [x] 既存SIDESTORY/メインストーリーへの影響がないことの確認
+
+### 実装結果
+✅ **完了**: MINISTORYイベントで攻略ステージとシナリオステージの完全分離を実現
+- MINISTORYイベントではシナリオファイル（`level_*_st*.json`）のみを処理
+- 攻略用ステージ（`act15mini_01`, `act15mini_02`等）は完全に除外
+- 仮想ステージコード（ST-1, ST-2...）を自動生成
+- 既存のSIDESTORY/メインストーリーには影響なし
 
 ### 影響範囲
-- **修正対象**: `src/lib/stage_parser.py`
-- **影響イベント**: act10mini, act11mini, act12mini, act13mini, act14mini, act15mini, act16mini, act17mini等
-- **既存機能への影響**: なし（条件分岐による特別処理）
+- **修正対象**: `src/lib/stage_parser.py`, `src/lib/event_parser.py`
+- **影響イベント**: act10mini〜act17mini等のMINISTORY形式イベント
+- **処理方針**: シナリオ用ステージ（`level_*_st*.json`）のみを処理対象とする
 
 ## 注意事項
 - ArknightsStoryJsonのライセンスを確認し、適切にクレジット表記を行う

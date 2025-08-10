@@ -33,25 +33,51 @@ class EventGenerator(BaseGenerator):
         for file_name, stage_info in ordered_stories:
             # Find corresponding story object
             story = None
-            for s in event.stories:
-                # Match by story code instead of file name
-                stage_code = stage_info.get('code', '')
-                if s.story_code == stage_code:
-                    story = s
-                    break
+            
+            # For MINISTORY events, match by filename since story_code is empty
+            if event.activity_info.type == 'MINISTORY':
+                story_file_name = Path(file_name).name
+                # Find the matching story file
+                matching_file = None
+                for story_file in event.story_files:
+                    if story_file.name == story_file_name:
+                        matching_file = story_file
+                        break
+                
+                if matching_file:
+                    # Find story that corresponds to this file (by index)
+                    file_index = list(event.story_files).index(matching_file)
+                    if file_index < len(event.stories):
+                        story = event.stories[file_index]
+            else:
+                # Regular matching for non-MINISTORY events
+                for s in event.stories:
+                    # Match by story code instead of file name
+                    stage_code = stage_info.get('code', '')
+                    if s.story_code == stage_code:
+                        story = s
+                        break
             
             # Generate story data
             if story:
-                # Story exists - use story code as filename (same logic as story generator)
-                actual_file_name = story.story_code if story.story_code else stage_info.get('code', Path(file_name).stem)
+                # For MINISTORY events, use different filename and title logic
+                if event.activity_info.type == 'MINISTORY':
+                    # Use stage code as filename for MINISTORY (ST-1, ST-2, etc.)
+                    actual_file_name = stage_info.get('code', Path(file_name).stem)
+                    # Use the actual story name from the JSON file
+                    display_title = story.story_name if story.story_name else stage_info.get('name', f'ストーリー {stage_info.get("code", "")}')
+                else:
+                    # Regular logic for non-MINISTORY events
+                    actual_file_name = story.story_code if story.story_code else stage_info.get('code', Path(file_name).stem)
+                    display_title = story.story_name
                 
                 story_data = {
-                    'story_name': story.story_name,
-                    'story_code': story.story_code,
+                    'story_name': display_title,
+                    'story_code': story.story_code if story.story_code else stage_info.get('code', ''),
                     'story_info': story.story_info,
                     'file_name': actual_file_name,
                     'stage_code': stage_info.get('code', ''),
-                    'stage_name': stage_info.get('name', story.story_name),
+                    'stage_name': display_title,
                     'story_phase': stage_info.get('story_phase', ''),
                     'danger_level': stage_info.get('danger_level', ''),
                     'stage_type': stage_info.get('stage_type', ''),

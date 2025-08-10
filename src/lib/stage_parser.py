@@ -67,6 +67,65 @@ def build_stage_dependency_graph(stages: Dict[str, StageInfo]) -> Dict[str, List
     
     return graph
 
+def is_ministory_story_file(file_name: str) -> bool:
+    """
+    Check if a file is a MINISTORY story file (level_*_st*.json pattern)
+    
+    Args:
+        file_name: Story file name
+        
+    Returns:
+        True if it's a MINISTORY story file
+    """
+    import re
+    return bool(re.match(r'level_.+_st\d+\.json$', file_name))
+
+def get_ministory_stages(event_id: str, story_files: List[str]) -> List[Tuple[str, StageInfo]]:
+    """
+    Generate virtual stage info for MINISTORY events from story files only.
+    MINISTORY events have separate gameplay and story stages - we only process story stages.
+    
+    Args:
+        event_id: Event ID
+        story_files: List of story file names (only st* files)
+        
+    Returns:
+        List of (file_name, virtual_stage_info) tuples in order
+    """
+    import re
+    
+    ministory_stages = []
+    
+    # Filter and sort MINISTORY story files
+    story_files_filtered = [f for f in story_files if is_ministory_story_file(f)]
+    story_files_sorted = sorted(story_files_filtered)
+    
+    for file_name in story_files_sorted:
+        # Extract stage number from filename: level_act15mini_st01.json -> 01
+        match = re.match(r'level_(.+)_st(\d+)\.json$', file_name)
+        if match:
+            event_part, stage_num = match.groups()
+            
+            # Create virtual stage info for MINISTORY story stage
+            # These don't correspond to actual gameplay stages
+            virtual_stage_id = f"{event_part}_st{stage_num}"
+            virtual_stage_code = f"ST-{int(stage_num)}"  # ST-1, ST-2, etc.
+            
+            # Create virtual StageInfo for this story stage
+            virtual_stage = StageInfo(
+                stage_id=virtual_stage_id,
+                code=virtual_stage_code,
+                name=f"シナリオ {int(stage_num)}",  # "Scenario 1", "Scenario 2", etc.
+                stage_type="MINISTORY_STORY",
+                danger_level="",
+                unlock_conditions=[],
+                zone_id=f"{event_id}_zone1"
+            )
+            
+            ministory_stages.append((file_name, virtual_stage))
+    
+    return ministory_stages
+
 def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo], 
                             story_files: List[str], event_type: str = None) -> List[Tuple[str, str, bool]]:
     """
@@ -75,6 +134,22 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
     Returns:
         List[Tuple[str, str, bool]]: List of (file_name, stage_info, is_battle_story)
     """
+    
+    # Special handling for MINISTORY events
+    if event_type == 'MINISTORY':
+        # For MINISTORY events, ignore gameplay stages entirely
+        # Only process story files (level_*_st*.json) and create virtual stages
+        ministory_stages = get_ministory_stages(event_id, story_files)
+        
+        # Convert to the expected return format
+        ordered_stories = []
+        for file_name, virtual_stage in ministory_stages:
+            # All MINISTORY stories are story-only (not battle stories)
+            ordered_stories.append((file_name, virtual_stage, False))
+        
+        return ordered_stories
+    
+    # Regular processing for non-MINISTORY events
     # Extract event-related stages
     # Note: zone_id might not exactly match event_id (e.g., act31side -> act31sre_zone1)
     # So we check if stage_id starts with event_id instead

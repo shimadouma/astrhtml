@@ -176,7 +176,16 @@ python3 scripts/check_links.py --fail-on-broken
    - Story pages: `events/{event_id}/stories/{stage_code}.html`
    - Stage codes (OR-1, OR-ST-1, etc.) are used as file names
 
-5. **Data Compatibility and Backward Compatibility**:
+5. **MINISTORY Event Special Handling**:
+   - **Critical Design Rule**: MINISTORY events have separate gameplay and story stages
+   - **Gameplay stages** (in stage_table.json): Used for battles, should NOT be processed for story generation
+   - **Story stages** (level_*_st*.json files): Contain story content, ONLY these should be processed
+   - Example for act15mini:
+     - Gameplay stages (ignore): `act15mini_01` (FD-1), `act15mini_02` (FD-2), etc.
+     - Story stages (process): `level_act15mini_st01.json`, `level_act15mini_st02.json`, etc.
+   - This separation is unique to MINISTORY event type and does not apply to SIDESTORY or other event types
+
+6. **Data Compatibility and Backward Compatibility**:
    - **localStorage Bookmark Data**: Maintain backward compatibility for user bookmark data stored in browser localStorage
    - When updating bookmark data structure, implement migration logic to preserve existing bookmarks
    - Version bookmark data format and include migration paths for older versions
