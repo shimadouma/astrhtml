@@ -237,6 +237,7 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
         # Extract stage ID from filename
         # level_act40side_01_beg.json -> act40side_01
         # level_act40side_st01.json -> act40side_st01
+        # level_act11d0_sub-1-1_end.json -> act11d0_s01 (special hidden story mapping)
         # For MINISTORY: level_act17mini_st01.json -> act17mini_01 (remove 'st')
         base_name = file_name.replace('level_', '').replace('.json', '')
         
@@ -245,6 +246,17 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
             story_stage_mapping[file_name] = (stage_id, 'beg')
         elif '_end' in base_name:
             stage_id = base_name.replace('_end', '')
+            
+            # Special handling for hidden stories with sub-X-Y pattern
+            # level_act11d0_sub-1-1_end.json -> act11d0_s01
+            # level_act11d0_sub-1-2_end.json -> act11d0_s02
+            import re
+            sub_match = re.match(r'(.+)_sub-(\d+)-(\d+)', stage_id)
+            if sub_match:
+                event_part, sub_num1, sub_num2 = sub_match.groups()
+                # Map sub-1-1 -> s01, sub-1-2 -> s02, etc.
+                stage_id = f"{event_part}_s{sub_num2.zfill(2)}"
+            
             story_stage_mapping[file_name] = (stage_id, 'end')
         else:
             # Story-only stage
@@ -331,6 +343,63 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
             # Add post-battle story
             if end_file:
                 ordered_stories.append((end_file, stage_info, True))
+    
+    # Add any remaining story files that weren't matched to stages
+    # This handles hidden stories and other special cases
+    matched_files = {file_name for file_name, _, _ in ordered_stories}
+    remaining_files = [f for f in story_files if f not in matched_files]
+    
+    if remaining_files:
+        print(f"Info: Found {len(remaining_files)} unmatched story files for {event_id}, adding them at the end")
+        
+        # Sort remaining files alphabetically for consistent ordering
+        remaining_files.sort()
+        
+        for file_name in remaining_files:
+            # Try to get stage info from the mapping
+            if file_name in story_stage_mapping:
+                mapped_stage_id, story_type = story_stage_mapping[file_name]
+                
+                # Look for the stage in event_stages
+                stage_info = event_stages.get(mapped_stage_id)
+                if stage_info:
+                    # Use the actual stage info
+                    is_battle_story = story_type in ['beg', 'end']
+                    ordered_stories.append((file_name, stage_info, is_battle_story))
+                else:
+                    # Create virtual stage info for hidden stories
+                    virtual_stage_code = mapped_stage_id.split('_')[-1].upper()  # s01 -> S01
+                    if virtual_stage_code.startswith('S'):
+                        virtual_stage_code = f"TW-{virtual_stage_code}"  # S01 -> TW-S01, S02 -> TW-S02
+                    
+                    virtual_stage = StageInfo(
+                        stage_id=mapped_stage_id,
+                        code=virtual_stage_code,
+                        name="隠しストーリー",  # "Hidden Story"
+                        stage_type="HIDDEN_STORY",
+                        danger_level="",
+                        unlock_conditions=[],
+                        zone_id=f"{event_id}_zone1"
+                    )
+                    
+                    is_battle_story = story_type in ['beg', 'end']
+                    ordered_stories.append((file_name, virtual_stage, is_battle_story))
+            else:
+                # Fallback: create basic virtual stage info
+                base_name = file_name.replace('level_', '').replace('.json', '')
+                virtual_stage_code = base_name.split('_')[-1].upper()
+                
+                virtual_stage = StageInfo(
+                    stage_id=base_name,
+                    code=virtual_stage_code,
+                    name="ストーリー",  # "Story"
+                    stage_type="UNKNOWN",
+                    danger_level="",
+                    unlock_conditions=[],
+                    zone_id=f"{event_id}_zone1"
+                )
+                
+                ordered_stories.append((file_name, virtual_stage, False))
     
     return ordered_stories
 
