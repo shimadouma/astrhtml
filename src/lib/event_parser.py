@@ -115,8 +115,8 @@ def get_ordered_stories_for_event(event_id: str, base_path: Path) -> List[Tuple[
     # Load stage table
     stages = load_stage_table(base_path)
     
-    # Get story files (pass parent directory of base_path)
-    story_files = get_story_files(event_id, base_path.parent)
+    # Get story files
+    story_files = get_story_files(event_id, base_path)
     
     # Convert Path objects to filename strings
     story_file_names = [path.name for path in story_files]

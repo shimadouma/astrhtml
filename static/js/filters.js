@@ -1,45 +1,81 @@
 /**
- * Event filtering functionality
+ * Card filtering functionality for unified event and main story layout
  */
 
 class FilterManager {
     constructor() {
-        this.events = [];
-        this.allEvents = [];
+        this.allCards = [];
         this.activeFilters = {
             type: '',
-            year: '',
+            sort: 'default',
             search: ''
         };
         this.init();
     }
 
     init() {
-        this.collectEventData();
+        this.collectCardData();
         this.setupFilterUI();
         this.bindEvents();
         this.applyFilters();
     }
 
-    collectEventData() {
-        // Collect all event cards from DOM
-        const eventCards = document.querySelectorAll('.event-card');
-        this.allEvents = Array.from(eventCards).map(card => {
-            const titleElement = card.querySelector('.event-title a');
-            const typeElement = card.querySelector('.event-type');
-            const dateElement = card.querySelector('.event-date');
-            
-            return {
-                element: card,
-                title: titleElement ? titleElement.textContent.trim() : '',
-                type: typeElement ? typeElement.textContent.trim() : '',
-                dateText: dateElement ? dateElement.textContent.trim() : '',
-                year: this.extractYear(dateElement ? dateElement.textContent.trim() : '')
-            };
-        });
+    collectCardData() {
+        // Use data passed from template if available
+        if (window.cardData) {
+            this.allCards = window.cardData.map(card => ({
+                ...card,
+                element: null // Will be set when rendering
+            }));
+        } else {
+            // Fallback: collect from DOM
+            const cards = document.querySelectorAll('.card');
+            this.allCards = Array.from(cards).map(card => {
+                const titleElement = card.querySelector('.card-title a');
+                const typeElement = card.querySelector('.event-type, .chapter-indicator');
+                const dateElement = card.querySelector('.event-date');
+                
+                return {
+                    element: card,
+                    title: titleElement ? titleElement.textContent.trim() : '',
+                    type: this.determineCardType(card),
+                    subtitle: this.getCardSubtitle(card),
+                    link: titleElement ? titleElement.getAttribute('href') : '',
+                    can_access: !titleElement || !titleElement.closest('.btn-disabled'),
+                    start_date: dateElement ? this.extractDate(dateElement.textContent) : '',
+                    story_count: this.getStoryCount(card)
+                };
+            });
+        }
         
-        this.events = [...this.allEvents];
-        console.log('Collected events:', this.events.length);
+        console.log('Collected cards:', this.allCards.length);
+    }
+
+    determineCardType(card) {
+        if (card.classList.contains('main-story-card')) {
+            return 'main_story';
+        }
+        const typeElement = card.querySelector('.event-type');
+        return typeElement ? typeElement.textContent.trim() : '';
+    }
+
+    getCardSubtitle(card) {
+        const subtitleElement = card.querySelector('.card-subtitle, .event-type');
+        return subtitleElement ? subtitleElement.textContent.trim() : '';
+    }
+
+    getStoryCount(card) {
+        const storyElement = card.querySelector('.event-stories');
+        if (storyElement) {
+            const match = storyElement.textContent.match(/(\d+)/);
+            return match ? parseInt(match[1]) : 0;
+        }
+        return 0;
+    }
+
+    extractDate(dateText) {
+        const match = dateText.match(/(\d{4}年\d{2}月\d{2}日)/);
+        return match ? match[1] : '';
     }
 
     extractYear(dateText) {
@@ -49,55 +85,10 @@ class FilterManager {
     }
 
     setupFilterUI() {
-        const eventsSection = document.querySelector('#events');
-        if (!eventsSection) return;
-
-        // Create filter container
-        const filterContainer = document.createElement('div');
-        filterContainer.className = 'filter-container';
-        
-        // Get unique types and years
-        const types = [...new Set(this.allEvents.map(e => e.type).filter(t => t))].sort();
-        const years = [...new Set(this.allEvents.map(e => e.year).filter(y => y))].sort().reverse();
-
-        filterContainer.innerHTML = `
-            <div class="filter-controls">
-                <div class="filter-group">
-                    <label for="type-filter">イベント種別:</label>
-                    <select id="type-filter" class="filter-select">
-                        <option value="">すべて</option>
-                        ${types.map(type => `<option value="${type}">${type}</option>`).join('')}
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="year-filter">開催年:</label>
-                    <select id="year-filter" class="filter-select">
-                        <option value="">すべて</option>
-                        ${years.map(year => `<option value="${year}">${year}年</option>`).join('')}
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <button id="clear-filters" class="filter-clear">フィルターをクリア</button>
-                </div>
-            </div>
-            
-            <div class="filter-results">
-                <span class="results-count"></span>
-            </div>
-        `;
-
-        // Insert after events header
-        const eventsHeader = eventsSection.querySelector('h2');
-        if (eventsHeader) {
-            eventsHeader.after(filterContainer);
-        }
-
-        // Get references
+        // Filter UI is already in the template, just get references
         this.typeFilter = document.getElementById('type-filter');
-        this.yearFilter = document.getElementById('year-filter');
-        this.clearButton = document.getElementById('clear-filters');
+        this.sortFilter = document.getElementById('sort-filter');
+        this.clearButton = document.querySelector('.filter-clear');
         this.resultsCount = document.querySelector('.results-count');
     }
 
@@ -109,9 +100,9 @@ class FilterManager {
             });
         }
 
-        if (this.yearFilter) {
-            this.yearFilter.addEventListener('change', () => {
-                this.activeFilters.year = this.yearFilter.value;
+        if (this.sortFilter) {
+            this.sortFilter.addEventListener('change', () => {
+                this.activeFilters.sort = this.sortFilter.value;
                 this.applyFilters();
             });
         }
@@ -130,61 +121,147 @@ class FilterManager {
     }
 
     applyFilters() {
-        let filteredEvents = [...this.allEvents];
+        let filteredCards = [...this.allCards];
 
         // Apply type filter
         if (this.activeFilters.type) {
-            filteredEvents = filteredEvents.filter(event => 
-                event.type === this.activeFilters.type
-            );
-        }
-
-        // Apply year filter
-        if (this.activeFilters.year) {
-            filteredEvents = filteredEvents.filter(event => 
-                event.year === this.activeFilters.year
-            );
+            if (this.activeFilters.type === 'main_story') {
+                filteredCards = filteredCards.filter(card => card.type === 'main_story');
+            } else {
+                filteredCards = filteredCards.filter(card => 
+                    card.type !== 'main_story' && card.subtitle === this.activeFilters.type
+                );
+            }
         }
 
         // Apply search filter
         if (this.activeFilters.search) {
             const query = this.activeFilters.search.toLowerCase();
-            filteredEvents = filteredEvents.filter(event => 
-                event.title.toLowerCase().includes(query) ||
-                event.type.toLowerCase().includes(query)
+            filteredCards = filteredCards.filter(card => 
+                card.title.toLowerCase().includes(query) ||
+                card.subtitle.toLowerCase().includes(query)
             );
         }
 
-        this.showFilteredEvents(filteredEvents);
-        this.updateResultsCount(filteredEvents.length);
+        // Apply sorting
+        this.sortCards(filteredCards);
+
+        this.renderCards(filteredCards);
+        this.updateResultsCount(filteredCards.length);
     }
 
-    showFilteredEvents(filteredEvents) {
-        // Hide all events first
-        this.allEvents.forEach(event => {
-            event.element.style.display = 'none';
-        });
+    sortCards(cards) {
+        switch (this.activeFilters.sort) {
+            case 'date-desc':
+                cards.sort((a, b) => {
+                    if (a.type === 'main_story' && b.type !== 'main_story') return -1;
+                    if (a.type !== 'main_story' && b.type === 'main_story') return 1;
+                    if (a.type === 'main_story' && b.type === 'main_story') {
+                        return (a.chapter_number || 0) - (b.chapter_number || 0);
+                    }
+                    return b.sort_key.localeCompare(a.sort_key);
+                });
+                break;
+            case 'date-asc':
+                cards.sort((a, b) => {
+                    if (a.type === 'main_story' && b.type !== 'main_story') return -1;
+                    if (a.type !== 'main_story' && b.type === 'main_story') return 1;
+                    if (a.type === 'main_story' && b.type === 'main_story') {
+                        return (a.chapter_number || 0) - (b.chapter_number || 0);
+                    }
+                    return a.sort_key.localeCompare(b.sort_key);
+                });
+                break;
+            case 'name-asc':
+                cards.sort((a, b) => a.title.localeCompare(b.title));
+                break;
+            default: // 'default'
+                // Keep original order (main story first, then events by date)
+                break;
+        }
+    }
 
-        // Show filtered events
-        filteredEvents.forEach(event => {
-            event.element.style.display = 'block';
+    renderCards(cards) {
+        const container = document.getElementById('cards-container');
+        if (!container) return;
+
+        // Clear existing cards
+        container.innerHTML = '';
+
+        // Render filtered cards
+        cards.forEach(card => {
+            const cardElement = this.createCardElement(card);
+            container.appendChild(cardElement);
         });
 
         // Show/hide "no results" message
-        this.toggleNoResults(filteredEvents.length === 0);
+        this.toggleNoResults(cards.length === 0, container);
     }
 
-    toggleNoResults(show) {
-        const existingMessage = document.querySelector('.no-events-message');
+    createCardElement(card) {
+        const article = document.createElement('article');
+        article.className = `card ${card.type === 'main_story' ? 'main-story-card' : 'event-card'}`;
+
+        let headerContent = '';
+        if (card.type === 'main_story') {
+            headerContent = `
+                <div class="chapter-indicator">
+                    第${String(card.chapter_number).padStart(2, '0')}章
+                </div>
+            `;
+        } else {
+            headerContent = `
+                <span class="event-type">${card.subtitle}</span>
+            `;
+        }
+
+        let bodyContent = '';
+        if (card.type === 'main_story') {
+            bodyContent = `
+                <p class="card-subtitle">${card.subtitle}</p>
+            `;
+        } else {
+            bodyContent = `
+                <p class="event-date">
+                    開催期間: ${card.start_date} ~ ${card.end_date}
+                </p>
+                <p class="event-stories">
+                    ストーリー数: ${card.story_count}
+                </p>
+            `;
+        }
+
+        article.innerHTML = `
+            <div class="card-header">
+                ${headerContent}
+                <h3 class="card-title">
+                    <a href="${card.link}">${card.title}</a>
+                </h3>
+            </div>
+            
+            <div class="card-body">
+                ${bodyContent}
+            </div>
+            
+            <div class="card-footer">
+                <a href="${card.link}" 
+                   class="btn btn-primary${!card.can_access ? ' btn-disabled' : ''}">
+                    ${card.can_access ? 'ストーリーを読む' : '準備中'}
+                </a>
+            </div>
+        `;
+
+        return article;
+    }
+
+    toggleNoResults(show, container) {
+        const existingMessage = document.querySelector('.no-cards-message');
         
         if (show && !existingMessage) {
-            const eventsGrid = document.querySelector('.events-grid');
-            if (eventsGrid) {
-                const message = document.createElement('div');
-                message.className = 'no-events-message';
-                message.innerHTML = '<p>条件に一致するイベントが見つかりませんでした。</p>';
-                eventsGrid.after(message);
-            }
+            const message = document.createElement('div');
+            message.className = 'no-cards-message';
+            message.innerHTML = '<p>条件に一致するストーリーが見つかりませんでした。</p>';
+            container.after(message);
         } else if (!show && existingMessage) {
             existingMessage.remove();
         }
@@ -192,11 +269,11 @@ class FilterManager {
 
     updateResultsCount(count) {
         if (this.resultsCount) {
-            const total = this.allEvents.length;
+            const total = this.allCards.length;
             if (count === total) {
-                this.resultsCount.textContent = `${total}件のイベント`;
+                this.resultsCount.textContent = `${total}件のストーリー`;
             } else {
-                this.resultsCount.textContent = `${count}/${total}件のイベントを表示`;
+                this.resultsCount.textContent = `${count}/${total}件のストーリーを表示`;
             }
         }
     }
@@ -205,13 +282,13 @@ class FilterManager {
         // Reset filter values
         this.activeFilters = {
             type: '',
-            year: '',
+            sort: 'default',
             search: ''
         };
 
         // Reset UI
         if (this.typeFilter) this.typeFilter.value = '';
-        if (this.yearFilter) this.yearFilter.value = '';
+        if (this.sortFilter) this.sortFilter.value = 'default';
 
         // Clear search if it exists
         const searchInput = document.querySelector('.search-input');

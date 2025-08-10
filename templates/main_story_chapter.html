@@ -1,21 +1,29 @@
 {% extends "base.html" %}
 
-{% block title %}{{ event.event_name }} - アークナイツ ストーリーアーカイブ{% endblock %}
+{% block title %}{{ chapter_title }} - メインストーリー - アークナイツ ストーリーアーカイブ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ css_path }}main_story.css">
+{% endblock %}
 
 {% block content %}
 <nav class="breadcrumb">
     <ol>
         <li><a href="{{ index_path }}">ホーム</a></li>
-        <li><a href="{{ index_path }}#events">イベント一覧</a></li>
-        <li class="active">{{ event.event_name }}</li>
+        <li><a href="../index.html">メインストーリー</a></li>
+        <li class="active">{{ zone_info.short_title }}</li>
     </ol>
 </nav>
 
-<section class="event-header">
-    <h2>{{ event.event_name }}</h2>
-    <div class="event-info">
-        <p class="event-type">{{ event.activity_info.display_type }}</p>
-        <p class="event-date">開催期間: {{ event.start_date }} ~ {{ event.end_date }}</p>
+<section class="chapter-header">
+    <div class="chapter-info">
+        <div class="chapter-number-large">
+            {{ zone_info.short_title }}
+        </div>
+        <div class="chapter-details">
+            <h2>{{ chapter_title }}</h2>
+            <p class="episode-title">{{ episode_title }}</p>
+        </div>
     </div>
 </section>
 
@@ -29,25 +37,35 @@
                 <h4 class="story-title">
                     {% if story.has_story %}
                     <a href="stories/{{ story.file_name }}.html">
-                        {% if story.stage_code %}{{ story.stage_code }}{% endif %}
-                        {% if story.stage_name %}{{ story.stage_name }}{% else %}{{ story.story_name }}{% endif %}
+                        {{ story.stage_code }}
+                        {% if story.story_name %}
+                            {{ story.story_name }}
+                        {% else %}
+                            {{ story.stage_name }}
+                        {% endif %}
                     </a>
                     {% else %}
                     <span class="story-title-no-link">
-                        {% if story.stage_code %}{{ story.stage_code }}{% endif %}
-                        {% if story.stage_name %}{{ story.stage_name }}{% else %}{{ story.story_name }}{% endif %}
+                        {{ story.stage_code }}
+                        {% if story.story_name %}
+                            {{ story.story_name }}
+                        {% else %}
+                            {{ story.stage_name }}
+                        {% endif %}
                     </span>
                     {% endif %}
                 </h4>
                 <div class="story-meta">
                     {% if story.story_phase %}
-                    <span class="story-phase story-phase-{{ story.story_phase.replace('戦闘前', 'before').replace('戦闘後', 'after').replace('間章', 'story') }}">
+                    <span class="story-phase story-phase-{{ story.story_phase | replace('戦闘前', 'before') | replace('戦闘後', 'after') | replace('間章', 'story') }}">
                         {{ story.story_phase }}
                     </span>
                     {% endif %}
-                    {% if story.danger_level and story.danger_level != '-' %}
+                    
+                    {% if story.danger_level %}
                     <span class="danger-level">{{ story.danger_level }}</span>
                     {% endif %}
+                    
                     {% if not story.has_story %}
                     <span class="no-story-indicator">ストーリーなし</span>
                     {% endif %}
@@ -55,7 +73,7 @@
             </div>
             
             {% if story.story_info %}
-            <div class="story-summary">
+            <div class="story-description">
                 <p>{{ story.story_info }}</p>
             </div>
             {% endif %}
@@ -77,6 +95,6 @@
 </section>
 
 <nav class="navigation">
-    <a href="{{ index_path }}" class="btn btn-back">イベント一覧に戻る</a>
+    <a href="../index.html" class="btn btn-back">章一覧に戻る</a>
 </nav>
 {% endblock %}

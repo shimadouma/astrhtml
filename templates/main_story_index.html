@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}メインストーリー - アークナイツ ストーリーアーカイブ{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ css_path }}main_story.css">
+{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb">
+    <ol>
+        <li><a href="{{ index_path }}">ホーム</a></li>
+        <li class="active">メインストーリー</li>
+    </ol>
+</nav>
+
+<section class="main-story-header">
+    <h2>メインストーリー</h2>
+    <p class="main-story-description">
+        アークナイツのメインストーリーを章ごとに読むことができます。<br>
+        各章のストーリーは、ゲーム内の進行順序に従って整理されています。
+    </p>
+</section>
+
+<section class="chapters-section">
+    <h3>章一覧</h3>
+    
+    <div class="chapters-grid">
+        {% for chapter in chapters %}
+        <article class="chapter-card {% if not chapter.can_preview %}chapter-locked{% endif %}">
+            <div class="chapter-card-header">
+                <div class="chapter-number">
+                    {{ chapter.short_title }}
+                </div>
+                <h4 class="chapter-title">
+                    {% if chapter.can_preview %}
+                        <a href="chapter_{{ "%02d"|format(chapter.chapter) }}/index.html">
+                            {{ chapter.title }}
+                        </a>
+                    {% else %}
+                        {{ chapter.title }}
+                    {% endif %}
+                </h4>
+            </div>
+            
+            <div class="chapter-card-body">
+                <p class="chapter-subtitle">{{ chapter.subtitle }}</p>
+                <p class="episode-title">{{ chapter.episode_title }}</p>
+                {% if chapter.locked_text %}
+                    <p class="chapter-locked-text">{{ chapter.locked_text }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="chapter-card-footer">
+                {% if chapter.can_preview %}
+                    <a href="chapter_{{ "%02d"|format(chapter.chapter) }}/index.html" 
+                       class="btn btn-primary">
+                        ストーリーを読む
+                    </a>
+                {% else %}
+                    <span class="btn btn-disabled">準備中</span>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<nav class="navigation">
+    <a href="{{ index_path }}" class="btn btn-back">ホームに戻る</a>
+</nav>
+{% endblock %}

@@ -94,6 +94,51 @@ python3 build.py --limit 1
 git submodule update --remote --merge
 ```
 
+## Link Health Check
+
+**IMPORTANT**: Always run link health checks during development and testing to ensure all internal links are working correctly.
+
+### Automatic Link Checking
+
+The build process now includes automatic link checking by default:
+
+```bash
+# Build with automatic link checking (default)
+python3 build.py
+
+# Skip link checking if needed
+python3 build.py --no-check-links
+```
+
+### Manual Link Checking
+
+You can also run the link checker manually:
+
+```bash
+# Check all links in the generated site
+python3 scripts/check_links.py
+
+# Check links with detailed output
+python3 scripts/check_links.py --verbose
+
+# Check links and fail with exit code if broken links found
+python3 scripts/check_links.py --fail-on-broken
+```
+
+### Development Workflow with Link Checking
+
+**During development and testing, always ensure the link check passes:**
+
+1. **Build the site**: `python3 build.py --limit 5`
+2. **Verify links are working**: The build will automatically check links and fail if any are broken
+3. **Fix any broken links** if the build fails
+4. **Rebuild and verify**: `python3 build.py --limit 5`
+
+**Before deploying or committing changes:**
+- Always run a full build with link checking enabled
+- Fix any broken links immediately
+- Never deploy with broken links
+
 ## Important Files
 
 ### Data Processing
@@ -107,8 +152,9 @@ git submodule update --remote --merge
 - `static/css/` - Stylesheets
 
 ### Configuration & Build
-- `build.py` - Main build script
+- `build.py` - Main build script with integrated link checking
 - `preview.py` - Local preview server with auto-browser opening
+- `scripts/check_links.py` - Link health check script
 - `src/config.py` - Configuration file
 - `.github/workflows/deploy.yml` - GitHub Actions configuration
 

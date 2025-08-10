@@ -186,3 +186,100 @@ def get_stage_display_info(stage_info: StageInfo, story_type: str) -> Dict[str, 
         display_info['story_phase'] = ''
     
     return display_info
+
+
+def get_main_story_order_for_chapter(chapter: int, stages: Dict[str, StageInfo], 
+                                   story_files: List[str]) -> List[Tuple[str, StageInfo, bool]]:
+    """
+    Sort main story files in correct order for specific chapter
+    
+    Returns:
+        List[Tuple[str, StageInfo, bool]]: List of (file_name, stage_info, is_battle_story)
+    """
+    # Extract chapter-related stages (main_XX-YY, st_XX-YY, spst_XX-YY)
+    chapter_stages = {}
+    
+    for stage_id, stage_info in stages.items():
+        # Main story stages: main_XX-YY
+        if stage_id.startswith(f'main_{chapter:02d}-'):
+            chapter_stages[stage_id] = stage_info
+        # Interlude stages: st_XX-YY, spst_XX-YY
+        elif stage_id.startswith(f'st_{chapter:02d}-') or stage_id.startswith(f'spst_{chapter:02d}-'):
+            chapter_stages[stage_id] = stage_info
+    
+    # Create mapping between story files and stages
+    story_stage_mapping = {}
+    for file_name in story_files:
+        base_name = file_name.replace('level_', '').replace('.json', '')
+        
+        if base_name.startswith('main_'):
+            # level_main_XX-YY_beg.json or level_main_XX-YY_end.json
+            if '_beg' in base_name:
+                stage_id = base_name.replace('_beg', '')
+                story_stage_mapping[file_name] = (stage_id, 'beg')
+            elif '_end' in base_name:
+                stage_id = base_name.replace('_end', '')
+                story_stage_mapping[file_name] = (stage_id, 'end')
+        elif base_name.startswith('st_') or base_name.startswith('spst_'):
+            # level_st_XX-YY.json or level_spst_XX-YY.json
+            story_stage_mapping[file_name] = (base_name, 'story')
+    
+    # Build dependency graph for topological sort
+    dependency_graph = build_stage_dependency_graph(chapter_stages)
+    
+    # Execute topological sort
+    ordered_stages = topological_sort(dependency_graph)
+    ordered_stages.reverse()  # From start stage to end stage
+    
+    # Order story files based on sort results
+    ordered_stories = []
+    
+    for stage_id in ordered_stages:
+        if stage_id in chapter_stages:
+            stage_info = chapter_stages[stage_id]
+            
+            # Find battle stories (beg/end)
+            beg_file = None
+            end_file = None
+            
+            for file_name, (mapped_stage_id, story_type) in story_stage_mapping.items():
+                if mapped_stage_id == stage_id:
+                    if story_type == 'beg':
+                        beg_file = file_name
+                    elif story_type == 'end':
+                        end_file = file_name
+                    elif story_type == 'story':
+                        # Interlude story
+                        ordered_stories.append((file_name, stage_info, False))
+            
+            # Add pre-battle story
+            if beg_file:
+                ordered_stories.append((beg_file, stage_info, True))
+            
+            # Add post-battle story  
+            if end_file:
+                ordered_stories.append((end_file, stage_info, True))
+    
+    return ordered_stories
+
+
+def get_main_story_display_info(stage_info: StageInfo, story_type: str) -> Dict[str, str]:
+    """Generate display information for main story stages"""
+    display_info = {
+        'code': stage_info.code,
+        'name': stage_info.name, 
+        'danger_level': stage_info.danger_level,
+        'stage_type': stage_info.stage_type
+    }
+    
+    # Set story phase based on story type
+    if story_type == 'beg':
+        display_info['story_phase'] = '戦闘前'
+    elif story_type == 'end':
+        display_info['story_phase'] = '戦闘後'
+    elif story_type == 'story':
+        display_info['story_phase'] = '間章'
+    else:
+        display_info['story_phase'] = ''
+    
+    return display_info

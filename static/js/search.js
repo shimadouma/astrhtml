@@ -41,19 +41,26 @@ class SearchManager {
             <div class="search-input-container">
                 <input type="text" 
                        class="search-input" 
-                       placeholder="イベント名、ストーリー名、内容で検索..." 
+                       placeholder="イベント名、メインストーリー、内容で検索..." 
                        autocomplete="off">
                 <button class="search-clear" style="display: none;">×</button>
             </div>
             <div class="search-results" style="display: none;"></div>
         `;
 
-        // Insert after events section header
-        const eventsSection = document.querySelector('#events');
-        if (eventsSection) {
-            const eventsHeader = eventsSection.querySelector('h2');
-            if (eventsHeader) {
-                eventsHeader.after(searchContainer);
+        // Insert after content section header or filter container
+        const contentSection = document.querySelector('#content');
+        if (contentSection) {
+            const filterContainer = contentSection.querySelector('.filter-container');
+            if (filterContainer) {
+                // Insert search after filter container
+                filterContainer.after(searchContainer);
+            } else {
+                // Fallback: insert after section header
+                const contentHeader = contentSection.querySelector('h2');
+                if (contentHeader) {
+                    contentHeader.after(searchContainer);
+                }
             }
         }
 

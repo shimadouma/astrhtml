@@ -1,0 +1,245 @@
+# Cursor Project Settings for Arknights Story Archive
+
+## プロジェクト概要
+
+**Arknights Story Archive**
+
+ArknightsイベントストーリーをHTML形式で閲覧するための静的サイトジェネレーター。ArknightsStoryJson Japanese (ja_JP)データを使用して日本語のストーリーを処理・生成し、GitHub Pagesで公開されています。
+
+## コーディング規約
+
+**重要**: すべてのgitコミットメッセージとコードコメントは英語で記述する必要があります。
+- Gitコミットメッセージ: 明確で簡潔な英語を使用
+- コードコメント: すべてのコメントを英語で記述
+- 変数名と関数名: 英語の命名規則を使用
+- ドキュメント: 技術ドキュメントは英語で記述
+
+## ウェブサイトコンテンツ規約
+
+**重要**: 生成されるHTMLウェブサイトのコンテンツは日本語である必要があります。
+- HTMLテンプレート: UI要素とラベルに日本語テキストを使用
+- ストーリーコンテンツ: ストーリーを日本語で表示（ArknightsStoryJson ja_JPデータを使用）
+- ナビゲーション: メニュー項目とボタンは日本語で表示
+- エラーメッセージ: ユーザー向けエラーメッセージは日本語で表示
+- メタ情報: ページタイトルと説明は日本語で記述
+
+注意: これはエンドユーザー向けの生成されるウェブサイトコンテンツのみに適用されます。すべてのソースコード、コメント、開発ドキュメントは英語のままです。
+
+## 主要機能
+
+- **自動ストーリー順序付け**: stage_table.jsonを参照してゲーム順序でストーリーを表示
+- **戦闘情報表示**: 戦闘前、戦闘後、幕間章を推奨レベル表示で区別
+- **レスポンシブデザイン**: モバイルとデスクトップの両方に対応
+- **自動デプロイ**: GitHub Actionsによる毎日の自動更新
+
+## ビルドコマンド
+
+```bash
+# 依存関係のインストール
+pip install -r requirements.txt
+
+# すべてのイベントをビルド
+python3 build.py
+
+# テストビルド（限定イベント）
+python3 build.py --limit 5
+
+# クリーンビルド
+python3 build.py --clean
+
+# ローカルプレビューサーバーの開始
+python3 preview.py
+```
+
+## ローカルプレビュー
+
+### プレビューサーバーの開始
+
+```bash
+# 基本使用法（ポート8000でブラウザを自動的に開く）
+python3 preview.py
+
+# カスタムポート
+python3 preview.py --port 3000
+
+# ブラウザを自動的に開かない
+python3 preview.py --no-browser
+
+# 外部接続を許可
+python3 preview.py --host 0.0.0.0
+```
+
+### 開発ワークフロー
+
+1. **サイトのビルド**: `python3 build.py --limit 5`
+2. **プレビューサーバーの開始**: `python3 preview.py`
+3. **コードの変更**
+4. **再ビルド**: `python3 build.py --limit 5`
+5. **ブラウザの更新**で変更を確認
+
+**重要**: プレビューサーバーを使用する前に、`python3 build.py`を実行して`dist/`ディレクトリを生成する必要があります。
+
+## テストコマンド
+
+```bash
+# 依存関係が正しくインストールされているかチェック
+python3 -c "import jinja2, pathlib; print('Dependencies OK')"
+
+# ビルドシステムの機能を検証
+python3 build.py --limit 1
+
+# サブモジュールの更新
+git submodule update --remote --merge
+```
+
+## リンク健全性チェック
+
+**重要**: 開発とテスト中は常にリンク健全性チェックを実行して、すべての内部リンクが正しく動作していることを確認してください。
+
+### 自動リンクチェック
+
+ビルドプロセスにはデフォルトで自動リンクチェックが含まれています：
+
+```bash
+# 自動リンクチェック付きでビルド（デフォルト）
+python3 build.py
+
+# 必要に応じてリンクチェックをスキップ
+python3 build.py --no-check-links
+```
+
+### 手動リンクチェック
+
+リンクチェッカーを手動で実行することもできます：
+
+```bash
+# 生成されたサイトのすべてのリンクをチェック
+python3 scripts/check_links.py
+
+# 詳細出力でリンクをチェック
+python3 scripts/check_links.py --verbose
+
+# リンクをチェックし、壊れたリンクが見つかった場合は終了コードで失敗
+python3 scripts/check_links.py --fail-on-broken
+```
+
+### リンクチェック付き開発ワークフロー
+
+**開発とテスト中は、常にリンクチェックが通ることを確認してください：**
+
+1. **サイトのビルド**: `python3 build.py --limit 5`
+2. **リンクが動作していることを確認**: ビルドは自動的にリンクをチェックし、壊れたリンクがある場合は失敗します
+3. **壊れたリンクがあれば修正**
+4. **再ビルドと確認**: `python3 build.py --limit 5`
+
+**デプロイまたは変更をコミットする前：**
+- 常にリンクチェックが有効な完全ビルドを実行
+- 壊れたリンクがあればすぐに修正
+- 壊れたリンクがある状態でデプロイしない
+
+## 重要なファイル
+
+### データ処理
+- `src/lib/stage_parser.py` - ステージ情報とストーリー順序の決定
+- `src/lib/event_parser.py` - イベント情報の処理
+- `src/lib/story_parser.py` - ストーリーデータの分析
+
+### HTML生成
+- `src/generators/` - HTML生成モジュール
+- `templates/` - Jinja2テンプレート
+- `static/css/` - スタイルシート
+
+### 設定とビルド
+- `build.py` - 統合リンクチェック付きメインビルドスクリプト
+- `preview.py` - 自動ブラウザ起動付きローカルプレビューサーバー
+- `scripts/check_links.py` - リンク健全性チェックスクリプト
+- `src/config.py` - 設定ファイル
+- `.github/workflows/deploy.yml` - GitHub Actions設定
+
+## 開発ノート
+
+1. **サブモジュール**: ArknightsStoryJsonデータは外部サブモジュールです
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+2. **Python要件**: Python 3.8以上を使用
+
+3. **ビルド前検証**: 
+   - `data/ArknightsStoryJson`ディレクトリが存在することを確認
+   - requirements.txtの依存関係がインストールされていることを確認
+
+4. **HTMLファイル名**: 
+   - イベントページ: `events/{event_id}/index.html`
+   - ストーリーページ: `events/{event_id}/stories/{stage_code}.html`
+   - ステージコード（OR-1、OR-ST-1など）がファイル名として使用されます
+
+5. **データ互換性と後方互換性**:
+   - **localStorageブックマークデータ**: ブラウザのlocalStorageに保存されたユーザーブックマークデータの後方互換性を維持
+   - ブックマークデータ構造を更新する際は、既存のブックマークを保持するための移行ロジックを実装
+   - ブックマークデータ形式をバージョン管理し、古いバージョン用の移行パスを含める
+   - JavaScript/データ構造の変更後にブックマーク機能をテスト
+   - データ形式を変更する際のユーザーエクスペリエンスを考慮 - ユーザーがブックマークを失わないようにする
+   - コミットメッセージでブックマークデータ構造の変更を文書化
+   - 不正な形式または古いブックマークデータを適切に処理するための防御的プログラミングを使用
+
+## トラブルシューティング
+
+### 一般的な問題と解決策
+
+1. **ImportError**: 
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **空のサブモジュール**:
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+3. **ビルドエラー**:
+   - Python 3.8以上を使用していることを確認
+   - `data/ArknightsStoryJson`が存在することを確認
+
+4. **プレビューサーバーエラー**:
+   - サイトを生成するために最初に`python3 build.py`を実行
+   - ポートが使用中の場合は試してください: `python3 preview.py --port 8001`
+
+## デプロイ
+
+- **自動デプロイ**: メインブランチへのプッシュで自動的にトリガー
+- **手動デプロイ**: `./scripts/deploy.sh`を実行
+- **GitHub Pages**: Actionsで自動設定
+
+## タスク管理
+
+**TODOとDONEファイルの管理**:
+- `TODO.md`のタスクが完了したら、`DONE.md`に移動
+- `TODO.md`をクリーンに保ち、保留中または進行中のタスクのみを含める
+- `DONE.md`は完了した機能と改善の記録として機能
+- 項目を移動する際は、元のフォーマットを保持し、関連する場合は完了日を追加
+- 関連する完了項目を`DONE.md`でグループ化して、より良い整理を行う
+
+## ライセンスと免責事項
+
+- これは非公式のファンプロジェクトです
+- ストーリーデータはArknightsStoryJsonプロジェクトを使用しています
+
+## Cursor固有の設定
+
+### 推奨拡張機能
+- Python
+- Jinja2
+- GitLens
+- Auto Rename Tag
+- Bracket Pair Colorizer
+
+### ワークスペース設定
+- Python 3.8以上を使用
+- ファイルエンコーディング: UTF-8
+- 改行コード: LF (Unix)
+- インデント: スペース4個
+
+### デバッグ設定
+- `build.py`と`preview.py`のデバッグ設定を推奨
+- ブレークポイントを設定してビルドプロセスを追跡

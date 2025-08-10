@@ -34,16 +34,17 @@ class EventGenerator(BaseGenerator):
             # Find corresponding story object
             story = None
             for s in event.stories:
-                story_file_name = Path(s.story_code).name if s.story_code else ""
-                if story_file_name == file_name:
+                # Match by story code instead of file name
+                stage_code = stage_info.get('code', '')
+                if s.story_code == stage_code:
                     story = s
                     break
             
             # Generate story data
-            # Use the same file name logic as story_generator
-            actual_file_name = Path(file_name).stem if story and story.story_code else stage_info.get('code', Path(file_name).stem)
-            
             if story:
+                # Story exists - use story code as filename (same logic as story generator)
+                actual_file_name = story.story_code if story.story_code else stage_info.get('code', Path(file_name).stem)
+                
                 story_data = {
                     'story_name': story.story_name,
                     'story_code': story.story_code,
@@ -53,20 +54,25 @@ class EventGenerator(BaseGenerator):
                     'stage_name': stage_info.get('name', story.story_name),
                     'story_phase': stage_info.get('story_phase', ''),
                     'danger_level': stage_info.get('danger_level', ''),
-                    'stage_type': stage_info.get('stage_type', '')
+                    'stage_type': stage_info.get('stage_type', ''),
+                    'has_story': True
                 }
             else:
-                # Fallback if story object not found
+                # Story doesn't exist - create placeholder entry
+                stage_code = stage_info.get('code', '')
+                print(f"Info: No story data for {file_name} (stage {stage_code}), creating placeholder entry")
+                
                 story_data = {
-                    'story_name': stage_info.get('name', file_name),
-                    'story_code': file_name,
+                    'story_name': 'ストーリーなし',
+                    'story_code': stage_code,
                     'story_info': '',
-                    'file_name': actual_file_name,
-                    'stage_code': stage_info.get('code', ''),
-                    'stage_name': stage_info.get('name', file_name),
+                    'file_name': '',  # No file to link to
+                    'stage_code': stage_code,
+                    'stage_name': stage_info.get('name', f'ステージ {stage_code}'),
                     'story_phase': stage_info.get('story_phase', ''),
                     'danger_level': stage_info.get('danger_level', ''),
-                    'stage_type': stage_info.get('stage_type', '')
+                    'stage_type': stage_info.get('stage_type', ''),
+                    'has_story': False
                 }
             
             stories_data.append(story_data)

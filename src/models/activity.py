@@ -1,7 +1,8 @@
 """Activity table data model."""
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
+from .zone_info import ZoneInfo
 
 
 @dataclass
@@ -26,6 +27,10 @@ class ActivityInfo:
     rec_type: str
     is_page_entry: bool
     is_magnify: bool
+    
+    # Main story specific fields
+    zone_info: Optional[ZoneInfo] = None
+    is_main_story: bool = False
     
     @property
     def start_date(self) -> datetime:
@@ -59,4 +64,30 @@ class ActivityInfo:
             rec_type=data.get('recType', 'NONE'),
             is_page_entry=data.get('isPageEntry', False),
             is_magnify=data.get('isMagnify', False)
+        )
+    
+    @classmethod
+    def create_main_story(cls, zone_info: ZoneInfo) -> 'ActivityInfo':
+        """Create ActivityInfo for main story chapter."""
+        return cls(
+            id=f"main_{zone_info.chapter_number:02d}",
+            type="MAIN_STORY",
+            display_type="MAIN_STORY", 
+            name=zone_info.display_title,
+            start_time=0,  # Main story has no time limit
+            end_time=0,
+            reward_end_time=0,
+            display_on_home=True,
+            has_stage=True,
+            template_shop_id=None,
+            medal_group_id=None,
+            ungroupe_medal_ids=None,
+            is_replicate=False,
+            need_fixed_sync=False,
+            trap_domain_id=None,
+            rec_type="MAIN",
+            is_page_entry=True,
+            is_magnify=False,
+            zone_info=zone_info,
+            is_main_story=True
         )

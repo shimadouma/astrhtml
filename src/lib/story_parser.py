@@ -42,6 +42,24 @@ def parse_event_stories(event: Event) -> None:
             event.add_story(story)
 
 
+def create_stories_from_files(file_paths: List[Path]) -> List[Story]:
+    """
+    Create Story objects from list of file paths.
+    
+    Args:
+        file_paths: List of paths to story JSON files
+        
+    Returns:
+        List of Story objects
+    """
+    stories = []
+    for file_path in file_paths:
+        story = parse_story_file(file_path)
+        if story:
+            stories.append(story)
+    return stories
+
+
 def extract_story_content(story: Story) -> List[dict]:
     """
     Extract readable content from story.

@@ -1,0 +1,257 @@
+/**
+ * Main story specific styling
+ */
+
+/* Main Story Section on Homepage */
+.main-story-section {
+    margin-bottom: 3rem;
+}
+
+.main-story-section h2 {
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.main-chapters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.chapter-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chapter-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.chapter-card.chapter-locked {
+    opacity: 0.6;
+}
+
+.chapter-card.chapter-locked:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.chapter-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.chapter-number {
+    background: var(--accent-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 60px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.chapter-number-large {
+    background: var(--accent-color);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    text-align: center;
+    min-width: 80px;
+}
+
+.chapter-title {
+    flex: 1;
+    margin: 0;
+}
+
+.chapter-title a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.chapter-title a:hover {
+    color: var(--accent-color);
+}
+
+.chapter-card-body {
+    margin-bottom: 1.5rem;
+}
+
+.chapter-subtitle {
+    color: var(--text-color-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+}
+
+.episode-title {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-bottom: 0;
+}
+
+.chapter-locked-text {
+    color: var(--text-color-secondary);
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
+.chapter-card-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Chapter Header for Individual Chapter Pages */
+.chapter-header {
+    margin-bottom: 2rem;
+}
+
+.chapter-info {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 2rem;
+}
+
+.chapter-details {
+    flex: 1;
+}
+
+.chapter-details h2 {
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
+}
+
+.chapter-details .episode-title {
+    color: var(--text-color-secondary);
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Main Story Description */
+.main-story-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.main-story-header h2 {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.main-story-description {
+    color: var(--text-color-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Chapters Grid for Index Page */
+.chapters-section h3 {
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.chapters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Navigation */
+.section-navigation {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+/* Button Styles */
+.btn-disabled {
+    background: var(--text-color-secondary) !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+.btn-disabled:hover {
+    background: var(--text-color-secondary) !important;
+    transform: none !important;
+}
+
+/* Dark Theme Adjustments */
+[data-theme="dark"] .chapter-number,
+[data-theme="dark"] .chapter-number-large {
+    background: #4299e1;
+}
+
+[data-theme="dark"] .chapter-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-chapters-grid,
+    .chapters-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .chapter-card {
+        padding: 1rem;
+    }
+    
+    .chapter-info {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .chapter-details h2 {
+        font-size: 1.5rem;
+    }
+    
+    .chapter-number-large {
+        min-width: auto;
+        padding: 0.8rem 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .chapter-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .chapter-number {
+        align-self: flex-start;
+        min-width: auto;
+    }
+    
+    .main-story-description {
+        font-size: 0.9rem;
+        padding: 0 1rem;
+    }
+}

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git submodule:*)",
       "Bash(python:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(chmod:*)"
     ],
     "deny": []
   }

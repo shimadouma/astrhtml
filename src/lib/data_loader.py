@@ -32,7 +32,7 @@ def load_activity_table(base_path: Path) -> Dict[str, Any]:
     Returns:
         Activity table data
     """
-    activity_table_path = base_path / 'ja_JP' / 'gamedata' / 'excel' / 'activity_table.json'
+    activity_table_path = base_path / 'gamedata' / 'excel' / 'activity_table.json'
     data = load_json(activity_table_path)
     
     if not data or 'basicInfo' not in data:
@@ -52,7 +52,7 @@ def get_story_files(event_id: str, base_path: Path) -> List[Path]:
     Returns:
         List of story file paths
     """
-    story_dir = base_path / 'ja_JP' / 'gamedata' / 'story' / 'activities' / event_id
+    story_dir = base_path / 'gamedata' / 'story' / 'activities' / event_id
     
     if not story_dir.exists():
         return []

@@ -1,10 +1,11 @@
 """Story page generator."""
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from .base_generator import BaseGenerator
 from ..models.event import Event
 from ..models.story import Story
+from ..models.activity import ActivityInfo
 from ..utils.story_renderer import render_story_content, group_dialog_by_scene
 from ..config import DIST_PATH
 
@@ -107,3 +108,107 @@ class StoryGenerator(BaseGenerator):
         self.write_html_file(html, output_file)
         
         print(f"Generated story page: {output_file}")
+    
+    def generate_main_story_pages(self, activity: ActivityInfo, stories: List[Story], 
+                                output_path: Path = DIST_PATH) -> None:
+        """
+        Generate all story pages for a main story chapter.
+        
+        Args:
+            activity: Main story ActivityInfo object
+            stories: List of story objects
+            output_path: Output directory path
+        """
+        if not activity.zone_info:
+            return
+        
+        chapter = activity.zone_info.chapter_number
+        
+        # Create stories directory
+        stories_dir = output_path / 'main' / f'chapter_{chapter:02d}' / 'stories'
+        stories_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate each story page
+        for i, story in enumerate(stories):
+            # Determine file name from story code
+            file_name = Path(story.story_code).stem if story.story_code else f"story_{i}"
+            
+            # Get previous and next stories
+            prev_story = None
+            next_story = None
+            
+            if i > 0:
+                prev_story_code = stories[i-1].story_code
+                prev_story = {
+                    'story_name': stories[i-1].story_name,
+                    'file_name': Path(prev_story_code).stem if prev_story_code else f"story_{i-1}"
+                }
+            
+            if i < len(stories) - 1:
+                next_story_code = stories[i+1].story_code
+                next_story = {
+                    'story_name': stories[i+1].story_name,
+                    'file_name': Path(next_story_code).stem if next_story_code else f"story_{i+1}"
+                }
+            
+            # Generate story page
+            self._generate_main_story_page(
+                story,
+                activity,
+                stories_dir / f"{file_name}.html",
+                output_path,
+                prev_story,
+                next_story
+            )
+    
+    def _generate_main_story_page(
+        self,
+        story: Story,
+        activity: ActivityInfo,
+        output_file: Path,
+        root_path: Path,
+        prev_story: Optional[dict] = None,
+        next_story: Optional[dict] = None
+    ) -> None:
+        """
+        Generate a single main story page.
+        
+        Args:
+            story: Story object
+            activity: Parent activity object
+            output_file: Output file path
+            root_path: Root directory path
+            prev_story: Previous story info
+            next_story: Next story info
+        """
+        # Render story content
+        rendered_content = render_story_content(story)
+        
+        # Group content by scenes
+        scenes = group_dialog_by_scene(rendered_content)
+        
+        # Get relative paths
+        paths = self.get_relative_paths(output_file, root_path)
+        
+        # Add chapter index path
+        chapter_index_path = '../index.html'
+        
+        # Prepare context
+        context = {
+            'story': story,
+            'scenes': scenes,
+            'activity': activity,
+            'zone_info': activity.zone_info,
+            'chapter_index_path': chapter_index_path,
+            'main_index_path': '../../main/index.html',
+            'prev_story': prev_story,
+            'next_story': next_story,
+            'is_main_story': True,
+            **paths
+        }
+        
+        # Render and write
+        html = self.render_template('story.html', context)
+        self.write_html_file(html, output_file)
+        
+        print(f"Generated main story page: {output_file}")
