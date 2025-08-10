@@ -152,3 +152,50 @@ This file contains completed features and improvements from TODO.md
 - [x] ストーリーヘッダーのレイアウト問題修正 (2025-08-09)
   - story-infoの段落がインライン表示される問題を修正
   - CSS競合の解決とスコープの適切な設定
+
+## メインストーリー実装 (Completed: 2025-08-10)
+
+### フェーズ1: コア機能実装
+- [x] **データモデル拡張**
+  - [x] `src/models/zone_info.py` - メインストーリー章情報モデル作成
+  
+- [x] **パーサー実装**
+  - [x] `src/lib/zone_parser.py` - zone_table.jsonからメインストーリー章情報を取得
+  - [x] `src/lib/main_story_parser.py` - メインストーリーファイルの解析と章ごとの分類
+  
+- [x] **ジェネレーター更新**
+  - [x] `src/generators/main_story_generator.py` - メインストーリー章ページ生成
+  - [x] `src/generators/index_generator.py` - ホームページにメインストーリーセクション追加
+
+### フェーズ2: ビルドシステム統合
+- [x] **build.py更新**
+  - [x] メインストーリー処理オプション追加（`--include-main`, `--main-only`）
+  - [x] 章単位でのビルド制限オプション（`--main-chapters 0,1,2`）
+
+### フェーズ3: UI/UX改善
+- [x] **テンプレート更新**
+  - [x] `templates/index.html` - メインストーリーセクション追加
+  - [x] `templates/main_story_index.html` - メインストーリー章ページテンプレート作成
+  - [x] `templates/main_story_chapter.html` - メインストーリー章詳細ページテンプレート作成
+  
+- [x] **スタイリング**
+  - [x] `static/css/main_story.css` - メインストーリー専用スタイル
+
+## MINISTORY イベント特殊仕様対応 (Completed: 2025-08-10)
+
+### Phase 1: 基本修正
+- [x] `get_story_order_for_event()`でMINISTORY特別処理追加
+- [x] ファイル名→ステージIDマッピング修正
+- [x] イベントタイプ検出ロジック追加
+
+### Phase 2: シナリオ専用ステージ処理の実装
+- [x] **stage_parser.pyの専用ロジック追加**:
+  - [x] `get_ministory_stages()` 関数追加 - シナリオステージのみを抽出
+  - [x] `is_ministory_story_file()` 関数追加 - MINISTORYストーリーファイル判定
+  - [x] `get_story_order_for_event()` でMINISTORY用の分岐処理追加
+  - [x] 攻略用ステージを完全に除外し、ストーリーファイルベースで処理
+
+- [x] **シナリオステージの順序決定ロジック**:
+  - [x] story fileの命名規則（st01, st02...）による順序決定
+  - [x] stage_table.jsonの攻略ステージに依存しない独立した順序決定
+  - [x] 仮想ステージ情報（ST-1, ST-2...）の生成

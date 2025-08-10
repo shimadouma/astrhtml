@@ -28,27 +28,27 @@
 ### 実装フェーズ
 
 #### フェーズ1: コア機能実装
-- [ ] **データモデル拡張**
-  - [ ] `src/models/zone_info.py` - メインストーリー章情報モデル作成
+- [x] **データモデル拡張**
+  - [x] `src/models/zone_info.py` - メインストーリー章情報モデル作成
   - [ ] `src/models/activity_info.py` - メインストーリー対応の拡張
   
-- [ ] **パーサー実装**
-  - [ ] `src/lib/zone_parser.py` - zone_table.jsonからメインストーリー章情報を取得
-  - [ ] `src/lib/main_story_parser.py` - メインストーリーファイルの解析と章ごとの分類
+- [x] **パーサー実装**
+  - [x] `src/lib/zone_parser.py` - zone_table.jsonからメインストーリー章情報を取得
+  - [x] `src/lib/main_story_parser.py` - メインストーリーファイルの解析と章ごとの分類
   - [ ] `src/lib/stage_parser.py` - メインストーリーステージ順序の決定ロジック追加
     - [ ] メインストーリー用の`get_main_story_order_for_chapter()`関数追加
     - [ ] 間章（st_XX, spst_XX）の適切な配置ロジック実装
     - [ ] トポロジカルソート実装でステージ依存関係を解決
   
-- [ ] **ジェネレーター更新**
-  - [ ] `src/generators/main_story_generator.py` - メインストーリー章ページ生成
-  - [ ] `src/generators/index_generator.py` - ホームページにメインストーリーセクション追加
+- [x] **ジェネレーター更新**
+  - [x] `src/generators/main_story_generator.py` - メインストーリー章ページ生成
+  - [x] `src/generators/index_generator.py` - ホームページにメインストーリーセクション追加
   - [ ] `src/generators/story_generator.py` - メインストーリー対応
 
 #### フェーズ2: ビルドシステム統合
-- [ ] **build.py更新**
-  - [ ] メインストーリー処理オプション追加（`--include-main`, `--main-only`）
-  - [ ] 章単位でのビルド制限オプション（`--main-chapters 0,1,2`）
+- [x] **build.py更新**
+  - [x] メインストーリー処理オプション追加（`--include-main`, `--main-only`）
+  - [x] 章単位でのビルド制限オプション（`--main-chapters 0,1,2`）
   - [ ] メインストーリービルド統計の追加
   
 - [ ] **設定ファイル**
@@ -59,13 +59,14 @@
     - 章番号の検出・ソート設定
 
 #### フェーズ3: UI/UX改善
-- [ ] **テンプレート更新**
-  - [ ] `templates/index.html` - メインストーリーセクション追加
-  - [ ] `templates/main_story_index.html` - メインストーリー章ページテンプレート作成
+- [x] **テンプレート更新**
+  - [x] `templates/index.html` - メインストーリーセクション追加
+  - [x] `templates/main_story_index.html` - メインストーリー章ページテンプレート作成
+  - [x] `templates/main_story_chapter.html` - メインストーリー章詳細ページテンプレート作成
   - [ ] `templates/components/main_nav.html` - メインストーリー専用ナビゲーション
   
-- [ ] **スタイリング**
-  - [ ] `static/css/main_story.css` - メインストーリー専用スタイル
+- [x] **スタイリング**
+  - [x] `static/css/main_story.css` - メインストーリー専用スタイル
   - [ ] 章番号バッジのデザイン
   - [ ] エピソード進行状況表示
 
@@ -309,24 +310,9 @@ astrhtml/
 - シナリオ用ステージ専用の順序決定ロジックが必要
 - 他のイベントタイプ（SIDESTORY等）には影響しない設計とする
 
-### 修正済み対応
-✅ **Phase 1: 基本修正完了**
-- `get_story_order_for_event()`でMINISTORY特別処理追加済み
-- ファイル名→ステージIDマッピング修正済み
-- イベントタイプ検出ロジック追加済み
 
 ### 実装計画
 
-#### Phase 2: シナリオ専用ステージ処理の実装 ✅
-- [x] **stage_parser.pyの専用ロジック追加**:
-  - [x] `get_ministory_stages()` 関数追加 - シナリオステージのみを抽出
-  - [x] `get_story_order_for_event()` でMINISTORY用の分岐処理追加
-  - [x] 攻略用ステージを完全に除外し、ストーリーファイルベースで処理
-
-- [x] **シナリオステージの順序決定ロジック**:
-  - [x] story fileの命名規則（st01, st02...）による順序決定
-  - [x] stage_table.jsonの攻略ステージに依存しない独立した順序決定
-  - [x] 仮想ステージ情報（ST-1, ST-2...）の生成
 
 #### Phase 3: 実装詳細
 
@@ -352,19 +338,7 @@ def is_ministory_story_file(file_name: str) -> bool:
 3. **攻略ステージ除外**: stage_table.jsonの攻略ステージは参照しない
 4. **シンプルな順序決定**: ファイル名の番号順（st01, st02...）
 
-#### Phase 4: 検証・テスト ✅
-- [x] **MINISTORY専用テスト実装**:
-  - [x] 複数のMINISTORYイベント（act15mini, act16mini, act17mini）での動作確認
-  - [x] シナリオステージのみが表示されることの確認（ST-1, ST-2...形式）
-  - [x] 攻略ステージが完全に除外されることの確認
-  - [x] 既存SIDESTORY/メインストーリーへの影響がないことの確認
 
-### 実装結果
-✅ **完了**: MINISTORYイベントで攻略ステージとシナリオステージの完全分離を実現
-- MINISTORYイベントではシナリオファイル（`level_*_st*.json`）のみを処理
-- 攻略用ステージ（`act15mini_01`, `act15mini_02`等）は完全に除外
-- 仮想ステージコード（ST-1, ST-2...）を自動生成
-- 既存のSIDESTORY/メインストーリーには影響なし
 
 ### 影響範囲
 - **修正対象**: `src/lib/stage_parser.py`, `src/lib/event_parser.py`
