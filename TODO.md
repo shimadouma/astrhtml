@@ -345,6 +345,39 @@ def is_ministory_story_file(file_name: str) -> bool:
 - **影響イベント**: act10mini〜act17mini等のMINISTORY形式イベント
 - **処理方針**: シナリオ用ステージ（`level_*_st*.json`）のみを処理対象とする
 
+## ストーリーリンク問題の修正履歴
+
+### 2025-08-10: 主要なストーリーリンク問題を修正
+
+**問題**: イベントページでストーリーファイルが生成されているが、イベントインデックスページでリンクされていない
+
+**原因分析**:
+1. **ステージID検出の問題**: 一部のイベント（act3d0等）でevent_idとstage_idのプレフィックスが一致しない
+2. **ストーリーファイル名マッピングの問題**: `level_act4d0_st01.json`のようなファイル名が`act4d0_01`ステージに正しくマッピングされない
+
+**実装した修正**:
+1. **`get_event_related_stages()`関数の追加** (`src/lib/stage_parser.py`):
+   - Method 1: 直接的なstage_idプレフィックスマッチング
+   - Method 2: levelIdパターンマッチングで不一致なevent/stage IDを処理
+   - Method 3: 特殊ケースマッピング（act3d0 → a003_*）
+
+2. **ストーリーファイル名→ステージIDマッピングの改善**:
+   - `level_actXXX_st01.json` → `actXXX_01`パターンの処理
+   - act3d0の特殊なa003_*ステージIDパターンへの対応
+   - 既存のMINISTORYロジックとの互換性維持
+
+**修正結果**:
+- **修正前**: 4つのイベントで完全にリンクなし (act3d0, act4d0, act6d5, act7d5)
+- **修正後**: 全ての重要なストーリーリンク問題を解決
+- **検証**: `scripts/check_empty_events.py`で確認済み
+
+**影響を受けたファイル**:
+- `src/lib/stage_parser.py` - ステージ検出とマッピングロジック
+- `src/generators/event_generator.py` - イベントページ生成（既存コードは変更なし）
+
+**注意**: 残りの「未リンク」項目は主に`ENTRY.html`や`story_*.html`などの特殊ケースファイルで、コアストーリーリンク機能は正常に動作中。
+
+
 ## 注意事項
 - ArknightsStoryJsonのライセンスを確認し、適切にクレジット表記を行う
 - ストーリーデータの著作権に配慮する

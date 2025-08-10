@@ -199,3 +199,43 @@ This file contains completed features and improvements from TODO.md
   - [x] story fileの命名規則（st01, st02...）による順序決定
   - [x] stage_table.jsonの攻略ステージに依存しない独立した順序決定
   - [x] 仮想ステージ情報（ST-1, ST-2...）の生成
+
+## TYPE_ACT4D0 イベント特殊仕様対応 (Completed: 2025-08-10)
+
+### 問題背景
+TYPE_ACT4D0 イベント（act4d0, act6d5, act7d5）は MINISTORY イベントと同様に、攻略用ステージとストーリー用ステージが分離されているが、従来の処理では攻略用ステージが表示されていた。また「ストーリーなし」表示問題も発生していた。
+
+### 実装した修正
+
+#### Phase 1: ステージ表示の修正
+- [x] **`handle_type_act4d0_events()` 関数の実装** (`src/lib/stage_parser.py`)
+  - [x] 攻略用ステージ（SW-EV-*, AF-*, SA-*）の表示を停止
+  - [x] ストーリー用ステージ（ST-1, ST-2...）の仮想ステージ生成
+  - [x] MINISTORY イベントと同様の処理ロジック適用
+
+#### Phase 2: ストーリーリンク問題の修正
+- [x] **ファイル名マッピング問題の解決**
+  - [x] JSON ファイル名（level_act4d0_st01.json）と HTML ファイル名（story_0.html）の一貫したマッピング
+  - [x] stage_parser は JSON ファイル名を返し、event/story generator が HTML ファイル名を処理
+  - [x] 0-based インデックスによる正確なファイル名生成
+
+- [x] **event_generator.py の TYPE_ACT4D0 対応**
+  - [x] MINISTORY イベントと同様のストーリーマッチング処理
+  - [x] ファイルインデックスベースの HTML ファイル名生成（story_0, story_1, etc.）
+  - [x] イベントタイプ表示を "MINISTORY" に統一
+
+- [x] **story_generator.py の TYPE_ACT4D0 対応**
+  - [x] 0-based インデックスによる HTML ファイル名生成
+  - [x] 既存の MINISTORY 処理との統合
+
+#### Phase 3: ストーリータイトル表示の改善
+- [x] **実際のストーリータイトル表示**
+  - [x] JSON ファイルの `storyName` フィールドからタイトル抽出
+  - [x] 汎用的な「シナリオ 1」形式から実際のタイトルに変更
+  - [x] イベントページでの適切なタイトル表示
+
+### 修正結果
+- **対象イベント**: act4d0, act6d5, act7d5
+- **修正前**: 攻略用ステージ表示、「ストーリーなし」表示、汎用的なタイトル
+- **修正後**: ストーリー用ステージのみ表示、適切なリンク、実際のストーリータイトル
+- **技術的改善**: ファイル名マッピングの一貫性、コンポーネント間の適切な役割分担
