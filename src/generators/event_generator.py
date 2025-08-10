@@ -34,8 +34,8 @@ class EventGenerator(BaseGenerator):
             # Find corresponding story object
             story = None
             
-            # For MINISTORY events, match by filename since story_code is empty
-            if event.activity_info.type == 'MINISTORY':
+            # For MINISTORY and TYPE_ACT4D0 events, match by filename since story_code is empty
+            if event.activity_info.type in ['MINISTORY', 'TYPE_ACT4D0']:
                 story_file_name = Path(file_name).name
                 # Find the matching story file
                 matching_file = None
@@ -60,12 +60,18 @@ class EventGenerator(BaseGenerator):
             
             # Generate story data
             if story:
-                # For MINISTORY events, use different filename and title logic
+                # For MINISTORY and TYPE_ACT4D0 events, use different filename and title logic
                 if event.activity_info.type == 'MINISTORY':
                     # Use stage code as filename for MINISTORY (ST-1, ST-2, etc.)
                     actual_file_name = stage_info.get('code', Path(file_name).stem)
                     # Use the actual story name from the JSON file
                     display_title = story.story_name if story.story_name else stage_info.get('name', f'ストーリー {stage_info.get("code", "")}')
+                elif event.activity_info.type == 'TYPE_ACT4D0':
+                    # For TYPE_ACT4D0, map JSON filename to HTML filename using story index
+                    file_index = list(event.story_files).index(matching_file)
+                    actual_file_name = f"story_{file_index}"
+                    # Use the actual story name from JSON storyName field
+                    display_title = story.story_name if story.story_name else stage_info.get('name', f'シナリオ {file_index + 1}')
                 else:
                     # Regular logic for non-MINISTORY events
                     actual_file_name = story.story_code if story.story_code else stage_info.get('code', Path(file_name).stem)

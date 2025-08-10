@@ -126,6 +126,80 @@ def get_ministory_stages(event_id: str, story_files: List[str]) -> List[Tuple[st
     
     return ministory_stages
 
+def handle_type_act4d0_events(event_id: str, event_stages: Dict[str, StageInfo], story_files: List[str]) -> List[Tuple[str, StageInfo, bool]]:
+    """
+    Handle special TYPE_ACT4D0 events (act4d0, act6d5, act7d5) that have level_*_st*.json files
+    Like MINISTORY events, these have separate gameplay and story stages - only show story stages
+    Creates virtual story-only stages (ST-1, ST-2, etc.) instead of using gameplay stages
+    """
+    import re
+    
+    # Filter story files to only level_*_st*.json files for this event
+    story_json_files = []
+    for f in story_files:
+        if f.startswith(f'level_{event_id}_st') and f.endswith('.json'):
+            story_json_files.append(f)
+    
+    story_json_files.sort()  # level_act4d0_st01.json, level_act4d0_st02.json, etc.
+    
+    ordered_stories = []
+    
+    # Create virtual story-only stages like MINISTORY events
+    # Do NOT use gameplay stages from event_stages - create story-only stages instead
+    for i, story_file in enumerate(story_json_files):
+        # Extract stage number from filename: level_act4d0_st01.json -> 01
+        match = re.match(r'level_(.+)_st(\d+)\.json$', story_file)
+        if match:
+            event_part, stage_num = match.groups()
+            stage_num_int = int(stage_num)
+            
+            # Create virtual story stage info (similar to MINISTORY handling)
+            virtual_stage = StageInfo(
+                stage_id=f"{event_id}_st{stage_num}",
+                code=f"ST-{stage_num_int}",  # ST-1, ST-2, etc. (story stages, not gameplay)
+                name=f"シナリオ {stage_num_int}",  # "Scenario 1", "Scenario 2", etc.
+                stage_type="TYPE_ACT4D0_STORY",
+                danger_level="",
+                unlock_conditions=[],
+                zone_id=f"{event_id}_zone1"
+            )
+            
+            # For event generator compatibility, return the original JSON filename for story matching
+            # The event generator and story generator will handle HTML filename mapping
+            ordered_stories.append((story_file, virtual_stage, False))
+    
+    return ordered_stories
+
+def get_event_related_stages(event_id: str, stages: Dict[str, StageInfo]) -> Dict[str, StageInfo]:
+    """
+    Find all stages related to an event ID.
+    This handles cases where stage IDs don't match event IDs directly.
+    """
+    event_stages = {}
+    event_id_upper = event_id.upper()
+    
+    for stage_id, stage_info in stages.items():
+        # Method 1: Direct stage_id prefix match (most common case)
+        if stage_id.startswith(event_id):
+            event_stages[stage_id] = stage_info
+            continue
+            
+        # Method 2: Check levelId for event reference 
+        level_id = stage_info.level_id or ''
+        if event_id_upper in level_id.upper():
+            event_stages[stage_id] = stage_info
+            continue
+            
+        # Method 3: Handle special cases where stage prefix doesn't match event_id
+        # For example: act3d0 -> a003_*, act4d0 -> a004_*, etc.
+        if event_id == 'act3d0' and stage_id.startswith('a003_'):
+            event_stages[stage_id] = stage_info
+        elif event_id == 'act4d0' and stage_id.startswith('a004_'):
+            event_stages[stage_id] = stage_info
+        # Add more special mappings as needed
+    
+    return event_stages
+
 def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo], 
                             story_files: List[str], event_type: str = None) -> List[Tuple[str, str, bool]]:
     """
@@ -150,14 +224,12 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
         return ordered_stories
     
     # Regular processing for non-MINISTORY events
-    # Extract event-related stages
-    # Note: zone_id might not exactly match event_id (e.g., act31side -> act31sre_zone1)
-    # So we check if stage_id starts with event_id instead
-    event_stages = {
-        stage_id: stage_info 
-        for stage_id, stage_info in stages.items()
-        if stage_id.startswith(event_id)
-    }
+    # Extract event-related stages using improved detection
+    event_stages = get_event_related_stages(event_id, stages)
+    
+    # Special handling for TYPE_ACT4D0 events with story_*.html files
+    if event_id in ['act4d0', 'act6d5', 'act7d5']:
+        return handle_type_act4d0_events(event_id, event_stages, story_files)
     
     # Create mapping between story files and stages
     story_stage_mapping = {}
@@ -190,6 +262,31 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
             else:
                 stage_id = base_name
             story_stage_mapping[file_name] = (stage_id, 'story')
+            
+            # Special handling for events with st pattern in story-only files
+            # These events have story files like level_act4d0_st01.json but stages like act4d0_01
+            if '_st' in base_name and event_type != 'MINISTORY':
+                import re
+                match = re.match(r'(.+)_st(\d+)', base_name)
+                if match:
+                    event_part, stage_num = match.groups()
+                    # For these events, st01 -> 01, st02 -> 02, etc.
+                    stage_id = f"{event_part}_{stage_num.zfill(2)}"
+                    story_stage_mapping[file_name] = (stage_id, 'story')
+        
+        # Apply stage ID transformations for special cases
+        # These events have mismatched story filenames vs stage IDs
+        mapped_stage_id, story_type = story_stage_mapping[file_name]
+        
+        # Transform stage IDs to match actual stage table entries
+        if event_id == 'act3d0':
+            # act3d0_01 -> a003_01, act3d0_ex01 -> a003_ex01, etc.
+            transformed_stage_id = mapped_stage_id.replace('act3d0_', 'a003_')
+            story_stage_mapping[file_name] = (transformed_stage_id, story_type)
+        elif event_id == 'act4d0':
+            # Keep as is - act4d0_* stages exist directly
+            pass
+        # Add more transformations as needed
     
     # Build dependency graph for topological sort
     dependency_graph = build_stage_dependency_graph(event_stages)

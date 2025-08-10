@@ -25,9 +25,9 @@ class StoryGenerator(BaseGenerator):
         stories_dir = output_path / 'events' / event.event_id / 'stories'
         stories_dir.mkdir(parents=True, exist_ok=True)
         
-        # Get stories in correct order for MINISTORY vs regular events
-        if event.activity_info.type == 'MINISTORY':
-            # For MINISTORY events, preserve the original file order since stories are already ordered correctly
+        # Get stories in correct order for MINISTORY and TYPE_ACT4D0 vs regular events
+        if event.activity_info.type in ['MINISTORY', 'TYPE_ACT4D0']:
+            # For MINISTORY and TYPE_ACT4D0 events, preserve the original file order since stories are already ordered correctly
             stories = event.stories
         else:
             # Get sorted stories for regular events
@@ -39,6 +39,9 @@ class StoryGenerator(BaseGenerator):
             if event.activity_info.type == 'MINISTORY':
                 # For MINISTORY, use ST-1, ST-2, etc. as filename
                 file_name = f"ST-{i+1}"
+            elif event.activity_info.type == 'TYPE_ACT4D0':
+                # For TYPE_ACT4D0, use story_0, story_1, etc. as filename (0-indexed)
+                file_name = f"story_{i}"
             else:
                 # Regular logic for other events
                 file_name = Path(story.story_code).stem if story.story_code else f"story_{i}"
