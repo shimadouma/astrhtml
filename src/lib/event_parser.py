@@ -126,8 +126,12 @@ def get_ordered_stories_for_event(event_id: str, base_path: Path) -> List[Tuple[
         return [(file_name, {'code': '', 'name': file_name, 'story_phase': '', 'danger_level': '', 'stage_type': ''}) 
                 for file_name in sorted(story_file_names)]
     
+    # Get event type for special processing
+    activities = parse_activities(base_path)
+    event_type = activities.get(event_id).type if event_id in activities else None
+    
     # Get in correct order
-    ordered_stories = get_story_order_for_event(event_id, stages, story_file_names)
+    ordered_stories = get_story_order_for_event(event_id, stages, story_file_names, event_type)
     
     result = []
     for file_name, stage_info, is_battle_story in ordered_stories:

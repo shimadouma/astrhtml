@@ -271,6 +271,61 @@ astrhtml/
 └── CLAUDE.md                  # Claude Code設定
 ```
 
+## MINISTORY イベント修正
+
+### 問題の詳細
+MINISTORY タイプのイベント（act17mini など）で、イベントページにストーリー数が0と表示される問題が発生している。
+
+### 原因分析
+1. **ファイル命名の不一致**:
+   - MINISTORYイベントのストーリーファイル: `level_act17mini_st01.json`, `level_act17mini_st02.json`
+   - 対応するステージID: `act17mini_01`, `act17mini_02` (stなし)
+   
+2. **stage_parser.pyの問題**:
+   - `get_story_order_for_event()`関数の`story_stage_mapping`でファイル名からステージIDへのマッピングが正しく動作していない
+   - `level_act17mini_st01.json` → `act17mini_st01` とマッピングされるが、実際のステージIDは `act17mini_01`
+
+### 修正計画
+
+#### Phase 1: コア修正
+- [ ] **src/lib/stage_parser.py修正**:
+  - [ ] `get_story_order_for_event()`関数でMINISTORYファイルの特別処理を追加
+  - [ ] `level_[eventId]_st[XX].json` → `[eventId]_[XX]` のマッピングロジック実装
+  - [ ] MINISTORYイベント検出ロジック追加（activity_table.jsonのtypeフィールド参照）
+
+#### Phase 2: 動作確認
+- [ ] **テスト実装**:
+  - [ ] act17mini, act16mini, act15mini等での動作確認
+  - [ ] 既存イベント（SIDESTORY等）への影響確認
+  - [ ] ストーリー順序の正確性確認
+
+#### Phase 3: エラーハンドリング改善
+- [ ] **ログ出力強化**:
+  - [ ] ストーリーファイル0件の場合の詳細ログ出力
+  - [ ] マッピング失敗時のデバッグ情報追加
+
+### 実装詳細
+
+#### 1. MINISTORYファイルマッピング修正
+```python
+# 現在の問題のあるマッピング
+# level_act17mini_st01.json → act17mini_st01 (存在しない)
+
+# 修正後のマッピング  
+# level_act17mini_st01.json → act17mini_01 (正しいステージID)
+```
+
+#### 2. イベントタイプ検出
+活動テーブルから`type: "MINISTORY"`を検出し、適切なマッピングロジックを適用する。
+
+#### 3. 後方互換性
+既存のSIDESTORY、メインイベント等に影響しないよう、MINISTORYのみに特別処理を適用する。
+
+### 影響範囲
+- **修正対象**: `src/lib/stage_parser.py`
+- **影響イベント**: act10mini, act11mini, act12mini, act13mini, act14mini, act15mini, act16mini, act17mini等
+- **既存機能への影響**: なし（条件分岐による特別処理）
+
 ## 注意事項
 - ArknightsStoryJsonのライセンスを確認し、適切にクレジット表記を行う
 - ストーリーデータの著作権に配慮する

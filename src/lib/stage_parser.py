@@ -68,7 +68,7 @@ def build_stage_dependency_graph(stages: Dict[str, StageInfo]) -> Dict[str, List
     return graph
 
 def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo], 
-                            story_files: List[str]) -> List[Tuple[str, str, bool]]:
+                            story_files: List[str], event_type: str = None) -> List[Tuple[str, str, bool]]:
     """
     Sort event story files in correct order
     
@@ -90,6 +90,7 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
         # Extract stage ID from filename
         # level_act40side_01_beg.json -> act40side_01
         # level_act40side_st01.json -> act40side_st01
+        # For MINISTORY: level_act17mini_st01.json -> act17mini_01 (remove 'st')
         base_name = file_name.replace('level_', '').replace('.json', '')
         
         if '_beg' in base_name:
@@ -100,7 +101,20 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
             story_stage_mapping[file_name] = (stage_id, 'end')
         else:
             # Story-only stage
-            story_stage_mapping[file_name] = (base_name, 'story')
+            # Special handling for MINISTORY events
+            if event_type == 'MINISTORY' and '_st' in base_name:
+                # level_act17mini_st01.json -> act17mini_01
+                # Remove 'st' from the stage number for MINISTORY events
+                import re
+                match = re.match(r'(.+)_st(\d+)', base_name)
+                if match:
+                    event_part, stage_num = match.groups()
+                    stage_id = f"{event_part}_{stage_num}"
+                else:
+                    stage_id = base_name
+            else:
+                stage_id = base_name
+            story_stage_mapping[file_name] = (stage_id, 'story')
     
     # Build dependency graph for topological sort
     dependency_graph = build_stage_dependency_graph(event_stages)
