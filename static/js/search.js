@@ -48,6 +48,10 @@ class SearchManager {
                        autocomplete="off">
                 <button class="search-clear" style="display: none;">×</button>
             </div>
+            <div class="search-query-display" style="display: none;">
+                <span class="query-label">検索条件:</span>
+                <span class="query-content"></span>
+            </div>
             <div class="search-results" style="display: none;"></div>
         `;
 
@@ -71,6 +75,8 @@ class SearchManager {
         this.searchInput = document.querySelector('.search-input');
         this.searchResults = document.querySelector('.search-results');
         this.searchClear = document.querySelector('.search-clear');
+        this.queryDisplay = document.querySelector('.search-query-display');
+        this.queryContent = document.querySelector('.query-content');
     }
 
     bindEvents() {
@@ -106,8 +112,13 @@ class SearchManager {
 
         if (query.length < 2) {
             this.hideResults();
+            this.hideQueryDisplay();
             return;
         }
+
+        // Parse query into keywords for AND search
+        const keywords = this.parseQuery(query);
+        this.showQueryDisplay(keywords);
 
         if (!this.searchData) {
             this.showResults([{ 
@@ -117,32 +128,36 @@ class SearchManager {
             return;
         }
 
-        const results = this.performSearch(query);
+        const results = this.performSearch(keywords);
         this.showResults(results);
     }
 
-    performSearch(query) {
-        const normalizedQuery = query.toLowerCase();
+    parseQuery(queryString) {
+        // Split by both half-width and full-width spaces, filter out empty strings
+        return queryString.split(/[\s　]+/).filter(keyword => keyword.trim().length > 0);
+    }
+
+    performSearch(keywords) {
         const results = [];
 
         // Search events
         for (const event of this.searchData.events) {
-            if (event.searchable_text.toLowerCase().includes(normalizedQuery)) {
+            if (this.matchesAllKeywords(event.searchable_text, keywords)) {
                 results.push({
                     type: 'event',
                     ...event,
-                    relevance: this.calculateRelevance(event.searchable_text, normalizedQuery)
+                    relevance: this.calculateRelevanceForKeywords(event.searchable_text, keywords)
                 });
             }
         }
 
         // Search stories
         for (const story of this.searchData.stories) {
-            if (story.searchable_text.toLowerCase().includes(normalizedQuery)) {
+            if (this.matchesAllKeywords(story.searchable_text, keywords)) {
                 results.push({
                     type: 'story',
                     ...story,
-                    relevance: this.calculateRelevance(story.searchable_text, normalizedQuery)
+                    relevance: this.calculateRelevanceForKeywords(story.searchable_text, keywords)
                 });
             }
         }
@@ -153,27 +168,39 @@ class SearchManager {
         return results.slice(0, 10); // Limit to 10 results
     }
 
-    calculateRelevance(text, query) {
+    matchesAllKeywords(text, keywords) {
         const lowerText = text.toLowerCase();
-        const lowerQuery = query.toLowerCase();
-        
+        return keywords.every(keyword => lowerText.includes(keyword.toLowerCase()));
+    }
+
+    calculateRelevanceForKeywords(text, keywords) {
+        const lowerText = text.toLowerCase();
         let score = 0;
         
-        // Exact match in name gets highest score
-        if (lowerText.includes(lowerQuery)) {
-            score += 10;
-        }
-        
-        // Count occurrences
-        const occurrences = (lowerText.match(new RegExp(lowerQuery, 'g')) || []).length;
-        score += occurrences;
-        
-        // Boost if query appears at the beginning
-        if (lowerText.startsWith(lowerQuery)) {
-            score += 5;
-        }
+        keywords.forEach(keyword => {
+            const lowerKeyword = keyword.toLowerCase();
+            
+            // Exact match gets highest score
+            if (lowerText.includes(lowerKeyword)) {
+                score += 10;
+            }
+            
+            // Count occurrences
+            const occurrences = (lowerText.match(new RegExp(lowerKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+            score += occurrences;
+            
+            // Boost if keyword appears at the beginning
+            if (lowerText.startsWith(lowerKeyword)) {
+                score += 5;
+            }
+        });
         
         return score;
+    }
+
+    calculateRelevance(text, query) {
+        // Legacy method for backward compatibility
+        return this.calculateRelevanceForKeywords(text, [query]);
     }
 
     showResults(results) {
@@ -186,22 +213,24 @@ class SearchManager {
                 if (result.type === 'message') {
                     return `<div class="search-message">${result.content}</div>`;
                 } else if (result.type === 'event') {
+                    const keywords = this.parseQuery(this.searchInput.value);
                     return `
                         <div class="search-result search-event">
                             <a href="${result.url}">
-                                <div class="search-title">${this.highlightMatch(result.name, this.searchInput.value)}</div>
+                                <div class="search-title">${this.highlightMatches(result.name, keywords)}</div>
                                 <div class="search-meta">イベント • ${result.type}</div>
                                 <div class="search-date">${result.start_date} ~ ${result.end_date}</div>
                             </a>
                         </div>
                     `;
                 } else if (result.type === 'story') {
+                    const keywords = this.parseQuery(this.searchInput.value);
                     return `
                         <div class="search-result search-story">
                             <a href="${result.url}">
-                                <div class="search-title">${this.highlightMatch(result.name, this.searchInput.value)}</div>
+                                <div class="search-title">${this.highlightMatches(result.name, keywords)}</div>
                                 <div class="search-meta">ストーリー • ${result.event_name}</div>
-                                ${result.info ? `<div class="search-snippet">${this.highlightMatch(result.info, this.searchInput.value)}</div>` : ''}
+                                ${result.info ? `<div class="search-snippet">${this.highlightMatches(result.info, keywords)}</div>` : ''}
                             </a>
                         </div>
                     `;
@@ -213,6 +242,24 @@ class SearchManager {
         }
 
         this.searchResults.style.display = 'block';
+    }
+
+    showQueryDisplay(keywords) {
+        if (!this.queryDisplay || !this.queryContent || keywords.length === 0) return;
+        
+        // Build query display with CSS-styled keywords and operators
+        const queryHtml = keywords.map(keyword => 
+            `<span class="search-keyword">${this.escapeHtml(keyword)}</span>`
+        ).join(' <span class="search-operator">AND</span> ');
+        
+        this.queryContent.innerHTML = queryHtml;
+        this.queryDisplay.style.display = 'block';
+    }
+
+    hideQueryDisplay() {
+        if (this.queryDisplay) {
+            this.queryDisplay.style.display = 'none';
+        }
     }
 
     hideResults() {
@@ -230,13 +277,32 @@ class SearchManager {
             this.searchClear.style.display = 'none';
         }
         this.hideResults();
+        this.hideQueryDisplay();
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    highlightMatches(text, keywords) {
+        if (!keywords || keywords.length === 0) return text;
+        
+        let highlightedText = text;
+        keywords.forEach(keyword => {
+            if (keyword.trim()) {
+                const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                highlightedText = highlightedText.replace(regex, '<mark>$1</mark>');
+            }
+        });
+        
+        return highlightedText;
     }
 
     highlightMatch(text, query) {
-        if (!query.trim()) return text;
-        
-        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')})`, 'gi');
-        return text.replace(regex, '<mark>$1</mark>');
+        // Legacy method for backward compatibility
+        return this.highlightMatches(text, [query]);
     }
 }
 

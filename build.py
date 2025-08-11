@@ -22,13 +22,15 @@ from src.generators.event_generator import EventGenerator
 from src.generators.story_generator import StoryGenerator
 from src.generators.main_story_generator import MainStoryGenerator
 from src.generators.search_index import SearchIndexGenerator
+from src.generators.ngram_search_index import NGramSearchIndexGenerator, NGramConfig, run_performance_tuning
 from src.generators.bookmark_generator import BookmarkGenerator
 from src.utils.file_utils import clean_directory, copy_static_files
 
 
 def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = None,
                include_main: bool = INCLUDE_MAIN_STORY_BY_DEFAULT, main_only: bool = False, 
-               main_chapters: list = None, check_links: bool = True):
+               main_chapters: list = None, check_links: bool = True, use_ngram: bool = True, 
+               ngram_config: NGramConfig = None, ngram_tuning: bool = False):
     """
     Build the entire site.
     
@@ -39,6 +41,10 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
         include_main: Whether to include main story
         main_only: Whether to build only main story (skip events)
         main_chapters: List of specific chapters to build (e.g., [0, 1, 2])
+        check_links: Whether to check links after generation
+        use_ngram: Whether to use N-gram search index (default: True)
+        ngram_config: N-gram configuration parameters
+        ngram_tuning: Whether to run performance tuning with multiple configs
     """
     print("=" * 50)
     print("Arknights Story HTML Builder")
@@ -139,8 +145,16 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
     
     # Generate search index (for events)
     if events:
-        print("Generating search index...")
-        search_gen.generate(events, DIST_PATH)
+        if ngram_tuning:
+            print("Running N-gram performance tuning...")
+            run_performance_tuning(events, DIST_PATH)
+        elif use_ngram:
+            print("Generating N-gram search index...")
+            ngram_gen = NGramSearchIndexGenerator(ngram_config or NGramConfig())
+            ngram_gen.generate(events, DIST_PATH)
+        else:
+            print("Generating basic search index...")
+            search_gen.generate(events, DIST_PATH)
     
     # Generate index page (with main story if available)
     print("Generating index page...")
@@ -272,6 +286,45 @@ def main():
         action='store_true',
         help='Skip link checking after build'
     )
+    parser.add_argument(
+        '--no-ngram',
+        action='store_true',
+        help='Use basic search index instead of N-gram search (default: N-gram enabled)'
+    )
+    parser.add_argument(
+        '--ngram-sizes',
+        type=str,
+        default='2,3',
+        help='Comma-separated N-gram sizes (default: 2,3)'
+    )
+    parser.add_argument(
+        '--ngram-min-freq',
+        type=int,
+        default=2,
+        help='Minimum N-gram frequency to include in index (default: 2)'
+    )
+    parser.add_argument(
+        '--ngram-max-index',
+        type=int,
+        default=100000,
+        help='Maximum index size in bytes (default: 100000)'
+    )
+    parser.add_argument(
+        '--ngram-max-chunk',
+        type=int,
+        default=500000,
+        help='Maximum chunk size in bytes (default: 500000)'
+    )
+    parser.add_argument(
+        '--ngram-tuning',
+        action='store_true',
+        help='Run N-gram performance tuning with multiple configurations'
+    )
+    parser.add_argument(
+        '--ngram-debug',
+        action='store_true',
+        help='Enable debug output for N-gram generation'
+    )
     
     args = parser.parse_args()
     
@@ -287,6 +340,26 @@ def main():
     # Determine link checking setting
     check_links = not args.no_check_links
     
+    # Determine N-gram usage
+    use_ngram = not args.no_ngram
+    
+    # Parse N-gram configuration
+    ngram_config = None
+    if use_ngram or args.ngram_tuning:
+        try:
+            ngram_sizes = [int(size.strip()) for size in args.ngram_sizes.split(',')]
+        except ValueError:
+            print("Error: --ngram-sizes must be comma-separated integers", file=sys.stderr)
+            sys.exit(1)
+        
+        ngram_config = NGramConfig(
+            ngram_sizes=ngram_sizes,
+            min_frequency=args.ngram_min_freq,
+            max_index_size=args.ngram_max_index,
+            max_chunk_size=args.ngram_max_chunk,
+            debug_output=args.ngram_debug
+        )
+    
     # Build site
     try:
         build_site(
@@ -296,7 +369,10 @@ def main():
             include_main=args.include_main if args.include_main else INCLUDE_MAIN_STORY_BY_DEFAULT,
             main_only=args.main_only,
             main_chapters=main_chapters,
-            check_links=check_links
+            check_links=check_links,
+            use_ngram=use_ngram,
+            ngram_config=ngram_config,
+            ngram_tuning=args.ngram_tuning
         )
     except Exception as e:
         print(f"Error during build: {e}", file=sys.stderr)
