@@ -20,7 +20,10 @@ class SearchManager {
     async loadSearchData() {
         try {
             this.isLoading = true;
-            const response = await fetch('/static/data/search.json');
+            // Use base path from window.basePath or fallback to relative path
+            const basePath = window.basePath || './';
+            const searchUrl = `${basePath}static/data/search.json`;
+            const response = await fetch(searchUrl);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

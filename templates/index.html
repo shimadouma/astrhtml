@@ -6,6 +6,8 @@
 <script>
     // Pass card data to JavaScript for filtering and searching
     window.cardData = {{ all_cards | tojson }};
+    // Pass base path for search functionality
+    window.basePath = '{{ root_path }}';
 </script>
 <script src="{{ js_path }}search.js"></script>
 <script src="{{ js_path }}filters.js"></script>
