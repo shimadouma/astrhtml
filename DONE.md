@@ -239,3 +239,53 @@ TYPE_ACT4D0 イベント（act4d0, act6d5, act7d5）は MINISTORY イベント�
 - **修正前**: 攻略用ステージ表示、「ストーリーなし」表示、汎用的なタイトル
 - **修正後**: ストーリー用ステージのみ表示、適切なリンク、実際のストーリータイトル
 - **技術的改善**: ファイル名マッピングの一貫性、コンポーネント間の適切な役割分担
+
+## 文字数表示機能（wordcount.json）実装 (Completed: 2025-08-11)
+
+### Phase 1: パーサー実装
+- [x] **src/lib/wordcount_parser.py** - wordcount.json解析モジュール作成
+  - [x] `load_wordcount_data()` - JSONファイルの読み込み
+  - [x] `get_story_wordcount(event_id, story_file)` - 特定ストーリーの文字数取得
+  - [x] `get_event_story_order(event_id)` - イベントのストーリー順序取得
+  - [x] `get_total_wordcount(event_id)` - イベント全体の文字数合計
+
+### Phase 2: 既存モジュール更新
+- [x] **src/lib/stage_parser.py** - 順序決定ロジック更新
+  - [x] `get_event_story_order()` にwordcount順序を優先する処理追加
+  - [x] wordcount.jsonに存在しない場合は既存ロジックにフォールバック
+  
+- [x] **src/generators/event_generator.py** - イベントページ生成更新
+  - [x] 各ストーリーリンクに文字数を追加表示
+  - [x] イベント全体の合計文字数を表示
+  
+- [x] **src/generators/story_generator.py** - ストーリーページ生成更新
+  - [x] ストーリータイトル下に文字数を表示
+
+### Phase 3: テンプレート更新
+- [x] **templates/event.html** - イベントページテンプレート
+  - [x] ストーリー一覧に文字数表示（例: "2,645文字"）
+  
+- [x] **templates/story.html** - ストーリーページテンプレート
+  - [x] タイトル下に文字数バッジ表示
+
+### Phase 4: スタイリング
+- [x] **static/css/story.css** - 文字数表示用スタイル
+  - [x] 文字数バッジのデザイン
+  - [x] ストーリー一覧での文字数表示レイアウト
+
+## バグ修正 (2025-08-11)
+
+### act9d0 DM-7/DM-8 仮想ストーリーリンク修正
+- [x] **問題**: wordcount.json使用時にDM-7とDM-8が未リンク
+- [x] **原因**: wordcount.jsonにこれらのステージのストーリーファイルが存在しない
+- [x] **修正**: `get_story_order_from_wordcount()`に仮想ストーリーエントリ追加ロジック実装
+- [x] **影響**: act9d0のすべてのステージが正常にリンクされるように
+
+## UI/UX改善 (2025-08-11)
+
+### ストーリーサマリー表示の改善
+- [x] **イベントページ**: ストーリーサマリー（div.story-summary）を削除
+- [x] **ストーリーページ**: サマリーをトグル可能に
+  - [x] デフォルトで非表示（ネタバレ防止）
+  - [x] 「あらすじを表示」ボタンで表示/非表示切り替え
+  - [x] JavaScript関数とCSSスタイル追加

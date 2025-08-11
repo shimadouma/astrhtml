@@ -158,7 +158,6 @@ html[data-theme="dark"] .speaker {
 }
 
 .narration .dialog-text {
-    font-style: italic;
     color: var(--text-color);
     opacity: 0.9;
 }

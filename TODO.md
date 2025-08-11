@@ -9,63 +9,6 @@
 - メインストーリーのイベントも対象とする
   - メインストーリーは data/ArknightsStoryJson/ja_JP/gamedata/story/obt/main/ にjsonファイルがある
     - メインストーリーは章ごとにディレクトリが別れていないので、章ごとにデータを分けて、各メインストーリーの章ごとにイベントページを作成する
-## 文字数表示機能（wordcount.json）実装計画
-
-### 機能概要
-- `data/ArknightsStoryJson/ja_JP/wordcount.json` に各イベントのステージの文字数一覧が記載されている
-  - 各イベントページのストーリー一覧に文字数を表示する
-  - 各ストーリーページのタイトルの下に文字数を表示する
-  - イベントのストーリーの並び順は、 wordcount.json にある並び順にステージIDがある場合にはこれを優先して採用する
-
-### データ構造
-```json
-{
-  "イベントID": {
-    "activities/イベントID/level_ファイル名": 文字数,
-    ...
-  }
-}
-```
-
-### 実装計画
-
-#### Phase 1: パーサー実装
-- [ ] **src/lib/wordcount_parser.py** - wordcount.json解析モジュール作成
-  - [ ] `load_wordcount_data()` - JSONファイルの読み込み
-  - [ ] `get_story_wordcount(event_id, story_file)` - 特定ストーリーの文字数取得
-  - [ ] `get_event_story_order(event_id)` - イベントのストーリー順序取得
-  - [ ] `get_total_wordcount(event_id)` - イベント全体の文字数合計
-
-#### Phase 2: 既存モジュール更新
-- [ ] **src/lib/stage_parser.py** - 順序決定ロジック更新
-  - [ ] `get_event_story_order()` にwordcount順序を優先する処理追加
-  - [ ] wordcount.jsonに存在しない場合は既存ロジックにフォールバック
-  
-- [ ] **src/generators/event_generator.py** - イベントページ生成更新
-  - [ ] 各ストーリーリンクに文字数を追加表示
-  - [ ] イベント全体の合計文字数を表示
-  
-- [ ] **src/generators/story_generator.py** - ストーリーページ生成更新
-  - [ ] ストーリータイトル下に文字数を表示
-
-#### Phase 3: テンプレート更新
-- [ ] **templates/event.html** - イベントページテンプレート
-  - [ ] ストーリー一覧に文字数表示（例: "OR-1 (2,645文字)"）
-  - [ ] 合計文字数の表示セクション追加
-  
-- [ ] **templates/story.html** - ストーリーページテンプレート
-  - [ ] タイトル下に文字数バッジ表示
-
-#### Phase 4: スタイリング
-- [ ] **static/css/style.css** - 文字数表示用スタイル
-  - [ ] 文字数バッジのデザイン
-  - [ ] ストーリー一覧での文字数表示レイアウト
-
-### 実装上の注意点
-1. **ファイルパスのマッピング**: wordcount.jsonのパスと実際のストーリーファイルのマッピング処理
-2. **メインストーリー対応**: メインストーリーもwordcount.jsonに含まれる場合の処理
-3. **エラーハンドリング**: wordcount.jsonに存在しないストーリーの処理
-4. **パフォーマンス**: 大量のイベントでも高速に動作するよう最適化
 
 ## メインストーリー実装計画
 
@@ -84,45 +27,25 @@
 
 ### 実装フェーズ
 
-#### フェーズ1: コア機能実装
-- [x] **データモデル拡張**
-  - [x] `src/models/zone_info.py` - メインストーリー章情報モデル作成
+#### 残りのタスク
+- [ ] **データモデル拡張**
   - [ ] `src/models/activity_info.py` - メインストーリー対応の拡張
   
-- [x] **パーサー実装**
-  - [x] `src/lib/zone_parser.py` - zone_table.jsonからメインストーリー章情報を取得
-  - [x] `src/lib/main_story_parser.py` - メインストーリーファイルの解析と章ごとの分類
-  - [x] `src/lib/stage_parser.py` - メインストーリーステージ順序の決定ロジック追加
-    - [x] メインストーリー用の`get_main_story_order_for_chapter()`関数追加
-    - [ ] 間章（st_XX, spst_XX）の適切な配置ロジック実装
-    - [ ] トポロジカルソート実装でステージ依存関係を解決
+- [ ] **パーサー実装**
+  - [ ] 間章（st_XX, spst_XX）の適切な配置ロジック実装
+  - [ ] トポロジカルソート実装でステージ依存関係を解決
   
-- [x] **ジェネレーター更新**
-  - [x] `src/generators/main_story_generator.py` - メインストーリー章ページ生成
-  - [x] `src/generators/index_generator.py` - ホームページにメインストーリーセクション追加
+- [ ] **ジェネレーター更新**
   - [ ] `src/generators/story_generator.py` - メインストーリー対応
 
-#### フェーズ2: ビルドシステム統合
-- [x] **build.py更新**
-  - [x] メインストーリー処理オプション追加（`--include-main`, `--main-only`）
-  - [x] 章単位でのビルド制限オプション（`--main-chapters 0,1,2`）
-  
 - [ ] **設定ファイル**
   - [ ] `src/config.py` - メインストーリー関連設定追加
     - メインストーリーパス設定
-    - ~~章情報マッピング~~（動的検出のため不要）
     - ビルドオプションのデフォルト値
     - 章番号の検出・ソート設定
 
-#### フェーズ3: UI/UX改善
-- [x] **テンプレート更新**
-  - [x] `templates/index.html` - メインストーリーセクション追加
-  - [x] `templates/main_story_index.html` - メインストーリー章ページテンプレート作成
-  - [x] `templates/main_story_chapter.html` - メインストーリー章詳細ページテンプレート作成
+- [ ] **UI/UX改善**
   - [ ] `templates/components/main_nav.html` - メインストーリー専用ナビゲーション
-  
-- [x] **スタイリング**
-  - [x] `static/css/main_story.css` - メインストーリー専用スタイル
   - [ ] 章番号バッジのデザイン
   - [ ] エピソード進行状況表示
 
@@ -273,6 +196,24 @@ python3 build.py --include-main
 - **新章追加時の自動対応**: 設定変更やコード修正なしで新章を認識
 - **GitHub Actions**: 新章追加時も既存のワークフローで自動ビルド・デプロイ
 
+## 今後の実装予定機能
+
+### パフォーマンス最適化
+- [ ] 大規模イベントのビルド時間短縮
+- [ ] 並列処理の導入
+- [ ] キャッシュシステムの実装
+
+### 検索機能の強化
+- [ ] 全文検索機能
+- [ ] 話者別検索
+- [ ] タグベース検索
+
+### ユーザビリティ改善
+- [ ] ストーリー進捗管理機能
+- [ ] お気に入り機能
+- [ ] 読了マーキング
+- [ ] ソーシャル共有機能
+
 ## 今後の機能拡張候補
 
 ### プログレッシブウェブアプリ（PWA）対応（実装見送り中）
@@ -328,78 +269,6 @@ astrhtml/
 └── CLAUDE.md                  # Claude Code設定
 ```
 
-## MINISTORY イベント特殊仕様
-
-### 重要な設計情報
-**MINISTORY形式のイベントは攻略用ステージとシナリオ用ステージが分離されている**
-
-#### ステージ構造の分離
-1. **攻略用ステージ（処理対象外）**:
-   - stage_table.jsonに定義されている戦闘用ステージ
-   - 例：`act15mini_01` (FD-1), `act15mini_02` (FD-2), `act15mini_s01` (FD-S-1) など
-   - プレイヤーが攻略するゲームプレイ用ステージ
-   - **これらは処理の対象外とする**
-
-2. **シナリオ用ステージ（処理対象）**:
-   - story/activities/[eventId]/level_[eventId]_st*.json ファイル
-   - 例：`level_act15mini_st01.json`, `level_act15mini_st02.json` など
-   - ストーリーコンテンツのみを含む
-   - **これらのみを処理対象とする**
-
-#### 具体例（act15mini）
-```
-攻略用ステージ（無視）:
-- act15mini_01 → FD-1: 繫栄滋養
-- act15mini_02 → FD-2: 辺境警邏  
-- act15mini_s01 → FD-S-1: 凍土境域
-...
-
-シナリオ用ステージ（処理対象）:
-- level_act15mini_st01.json → 対応するシナリオ専用ステージ
-- level_act15mini_st02.json → 対応するシナリオ専用ステージ
-...
-```
-
-### 実装上の注意点
-- MINISTORYイベントの場合、`level_*_st*.json` ファイルのみを処理する
-- 攻略用ステージとのマッピングは行わない
-- シナリオ用ステージ専用の順序決定ロジックが必要
-- 他のイベントタイプ（SIDESTORY等）には影響しない設計とする
-
-
-### 実装計画
-
-
-#### Phase 3: 実装詳細
-
-##### 3.1 専用関数の実装
-```python
-def get_ministory_stages(event_id: str, story_files: List[str]) -> List[Tuple[str, Dict]]:
-    """
-    MINISTORY専用: ストーリーファイルのみから仮想ステージ情報を生成
-    攻略用ステージは完全に無視
-    """
-    pass
-
-def is_ministory_story_file(file_name: str) -> bool:
-    """
-    MINISTORYのストーリーファイル判定（level_*_st*.json）
-    """
-    pass
-```
-
-##### 3.2 処理フロー変更
-1. **イベントタイプ判定**: `event_type == 'MINISTORY'`
-2. **ストーリーファイルのみ処理**: `level_*_st*.json` ファイルを対象
-3. **攻略ステージ除外**: stage_table.jsonの攻略ステージは参照しない
-4. **シンプルな順序決定**: ファイル名の番号順（st01, st02...）
-
-
-
-### 影響範囲
-- **修正対象**: `src/lib/stage_parser.py`, `src/lib/event_parser.py`
-- **影響イベント**: act10mini〜act17mini等のMINISTORY形式イベント
-- **処理方針**: シナリオ用ステージ（`level_*_st*.json`）のみを処理対象とする
 
 ## ストーリーリンク問題の修正履歴
 
