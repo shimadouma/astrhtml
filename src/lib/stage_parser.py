@@ -211,6 +211,279 @@ def natural_sort_key(text: str) -> List:
     
     return [convert(c) for c in re.split('([0-9]+)', text)]
 
+def get_remaining_story_files_with_proper_mapping(event_id: str, stages: Dict[str, StageInfo],
+                                                remaining_files: List[str], ordered_stories: List,
+                                                event_type: str = None) -> List[Tuple[str, str, bool]]:
+    """
+    Process remaining story files that weren't in wordcount.json with proper mapping.
+    This handles hidden stories and other special cases correctly.
+    """
+    # Extract event-related stages
+    event_stages = get_event_related_stages(event_id, stages)
+    
+    # Create mapping for remaining files using the same logic as the main function
+    story_stage_mapping = {}
+    for file_name in remaining_files:
+        base_name = file_name.replace('level_', '').replace('.json', '')
+        
+        if '_beg' in base_name:
+            stage_id = base_name.replace('_beg', '')
+            story_stage_mapping[file_name] = (stage_id, 'beg')
+        elif '_end' in base_name:
+            stage_id = base_name.replace('_end', '')
+            
+            # Special handling for hidden stories with sub-X-Y pattern
+            import re
+            sub_match = re.match(r'(.+)_sub-(\d+)-(\d+)', stage_id)
+            if sub_match:
+                event_part, sub_num1, sub_num2 = sub_match.groups()
+                stage_id = f"{event_part}_s{sub_num2.zfill(2)}"
+            
+            story_stage_mapping[file_name] = (stage_id, 'end')
+        else:
+            # Story-only stage
+            stage_id = base_name
+            story_stage_mapping[file_name] = (stage_id, 'story')
+            
+            # Special handling for hidden_st pattern (hidden stories)
+            if '_hidden_st' in base_name:
+                import re
+                match = re.match(r'(.+)_hidden_st(\d+)', base_name)
+                if match:
+                    event_part, stage_num = match.groups()
+                    # Map hidden_st01 -> story_0, hidden_st02 -> story_1, etc. (0-indexed)
+                    stage_id = f"story_{int(stage_num) - 1}"
+                    story_stage_mapping[file_name] = (stage_id, 'story')
+            
+            # Special handling for events with st pattern in story-only files
+            elif '_st' in base_name and event_type != 'MINISTORY':
+                import re
+                match = re.match(r'(.+)_st(\d+)', base_name)
+                if match:
+                    event_part, stage_num = match.groups()
+                    
+                    # Only transform st->numeric for specific TYPE_ACT4D0 events
+                    if event_id in ['act4d0', 'act6d5', 'act7d5']:
+                        stage_id = f"{event_part}_{stage_num.zfill(2)}"
+                    else:
+                        # For most events, keep the _st prefix
+                        stage_id = f"{event_part}_st{stage_num.zfill(2)}"
+                    
+                    story_stage_mapping[file_name] = (stage_id, 'story')
+        
+        # Apply stage ID transformations for special cases
+        mapped_stage_id, story_type = story_stage_mapping[file_name]
+        
+        # Transform stage IDs to match actual stage table entries
+        if event_id == 'act3d0':
+            transformed_stage_id = mapped_stage_id.replace('act3d0_', 'a003_')
+            story_stage_mapping[file_name] = (transformed_stage_id, story_type)
+    
+    # Process remaining files in sorted order
+    for file_name in remaining_files:
+        if file_name in story_stage_mapping:
+            mapped_stage_id, story_type = story_stage_mapping[file_name]
+            
+            # Look for the stage in event_stages
+            stage_info = event_stages.get(mapped_stage_id)
+            if stage_info:
+                # Use the actual stage info
+                is_battle_story = story_type in ['beg', 'end']
+                ordered_stories.append((file_name, stage_info, is_battle_story))
+            else:
+                # Create virtual stage info for hidden stories and other special cases
+                virtual_stage_code = mapped_stage_id.split('_')[-1].upper()
+                
+                if mapped_stage_id.startswith('story_'):
+                    # For story_0, story_1, etc. (hidden stories)
+                    story_num = mapped_stage_id.split('_')[-1]
+                    virtual_stage_code = f"逆行{int(story_num) + 1}"  # story_0 -> 逆行1, story_1 -> 逆行2
+                elif virtual_stage_code.startswith('S'):
+                    # Determine the correct event prefix by looking at existing event stages
+                    event_prefix = "TW"  # default fallback
+                    
+                    # Look for any existing stage in event_stages to get the correct prefix
+                    for existing_stage in event_stages.values():
+                        if existing_stage.code and '-' in existing_stage.code:
+                            # Extract prefix from existing stage code (e.g., "NL-1" -> "NL")
+                            event_prefix = existing_stage.code.split('-')[0]
+                            break
+                    
+                    # Format the stage number properly
+                    stage_num = virtual_stage_code[1:]  # Remove 'S' prefix
+                    try:
+                        stage_num_int = int(stage_num)
+                        virtual_stage_code = f"{event_prefix}-ST-{stage_num_int}"
+                    except ValueError:
+                        virtual_stage_code = f"{event_prefix}-S{stage_num}"
+                
+                virtual_stage = StageInfo(
+                    stage_id=mapped_stage_id,
+                    code=virtual_stage_code,
+                    name="隠しストーリー",  # "Hidden Story"
+                    stage_type="HIDDEN_STORY",
+                    danger_level="",
+                    unlock_conditions=[],
+                    zone_id=f"{event_id}_zone1"
+                )
+                
+                is_battle_story = story_type in ['beg', 'end']
+                ordered_stories.append((file_name, virtual_stage, is_battle_story))
+        else:
+            # Fallback: create basic virtual stage info
+            base_name = file_name.replace('level_', '').replace('.json', '')
+            virtual_stage_code = base_name.split('_')[-1].upper()
+            
+            virtual_stage = StageInfo(
+                stage_id=base_name,
+                code=virtual_stage_code,
+                name="ストーリー",  # "Story"
+                stage_type="UNKNOWN",
+                danger_level="",
+                unlock_conditions=[],
+                zone_id=f"{event_id}_zone1"
+            )
+            
+            is_battle_story = '_beg' in base_name or '_end' in base_name
+            ordered_stories.append((file_name, virtual_stage, is_battle_story))
+    
+    return ordered_stories
+
+def get_story_order_from_wordcount(event_id: str, stages: Dict[str, StageInfo],
+                                  story_files: List[str], wordcount_order: List[str],
+                                  event_type: str = None) -> List[Tuple[str, str, bool]]:
+    """
+    Get story order based on wordcount.json order.
+    
+    Args:
+        event_id: Event ID
+        stages: All stages from stage_table
+        story_files: List of story file names
+        wordcount_order: Order from wordcount.json
+        event_type: Event type
+    
+    Returns:
+        List of (file_name, stage_info, is_battle_story) tuples
+    """
+    # Extract event-related stages
+    event_stages = get_event_related_stages(event_id, stages)
+    
+    # Create mapping of story files
+    story_file_map = {}
+    for file_name in story_files:
+        # Extract base name without level_ prefix and .json extension
+        base_name = file_name.replace('level_', '').replace('.json', '')
+        story_file_map[base_name] = file_name
+        
+        # Also try without event prefix for matching
+        if base_name.startswith(event_id + '_'):
+            short_name = base_name[len(event_id) + 1:]
+            story_file_map[short_name] = file_name
+    
+    ordered_stories = []
+    processed_files = set()
+    
+    # Process files in wordcount order
+    for wc_filename in wordcount_order:
+        # Try to find matching story file
+        matched_file = None
+        
+        # Direct match
+        if wc_filename in story_file_map:
+            matched_file = story_file_map[wc_filename]
+        # Try with level_ prefix
+        elif f"level_{wc_filename}" + ".json" in story_files:
+            matched_file = f"level_{wc_filename}.json"
+        # Try without event prefix in wordcount filename
+        elif wc_filename.startswith(event_id + '_'):
+            short_name = wc_filename[len(event_id) + 1:]
+            if short_name in story_file_map:
+                matched_file = story_file_map[short_name]
+        
+        if matched_file and matched_file not in processed_files:
+            processed_files.add(matched_file)
+            
+            # Determine stage info and story type
+            base_name = matched_file.replace('level_', '').replace('.json', '')
+            
+            # Determine story type
+            is_battle_story = False
+            stage_id = base_name
+            
+            if '_beg' in base_name:
+                stage_id = base_name.replace('_beg', '')
+                is_battle_story = True
+            elif '_end' in base_name:
+                stage_id = base_name.replace('_end', '')
+                is_battle_story = True
+                
+                # Handle special hidden story patterns
+                import re
+                sub_match = re.match(r'(.+)_sub-(\d+)-(\d+)', stage_id)
+                if sub_match:
+                    event_part, sub_num1, sub_num2 = sub_match.groups()
+                    stage_id = f"{event_part}_s{sub_num2.zfill(2)}"
+            
+            # Apply stage ID transformations for special cases
+            if event_id == 'act3d0':
+                stage_id = stage_id.replace('act3d0_', 'a003_')
+            
+            # Find or create stage info
+            stage_info = event_stages.get(stage_id)
+            
+            if not stage_info:
+                # Create virtual stage info
+                if '_st' in base_name:
+                    # Story-only stage
+                    import re
+                    match = re.match(r'(.+)_st(\d+)', base_name)
+                    if match:
+                        event_part, stage_num = match.groups()
+                        stage_code = f"ST-{int(stage_num)}"
+                        stage_name = f"シナリオ {int(stage_num)}"
+                    else:
+                        stage_code = base_name.split('_')[-1].upper()
+                        stage_name = "ストーリー"
+                else:
+                    # Extract stage code from base_name
+                    parts = base_name.split('_')
+                    if len(parts) > 1:
+                        stage_code = parts[-1].upper()
+                        # Convert numeric codes to stage format
+                        if stage_code.isdigit():
+                            stage_code = f"OR-{int(stage_code)}"
+                        elif stage_code.startswith('EX'):
+                            stage_code = f"EX-{stage_code[2:]}"
+                    else:
+                        stage_code = "STORY"
+                    stage_name = "ストーリー"
+                
+                stage_info = StageInfo(
+                    stage_id=stage_id,
+                    code=stage_code,
+                    name=stage_name,
+                    stage_type="STORY",
+                    danger_level="",
+                    unlock_conditions=[],
+                    zone_id=f"{event_id}_zone1"
+                )
+            
+            ordered_stories.append((matched_file, stage_info, is_battle_story))
+    
+    # Add any remaining files not in wordcount order
+    remaining_files = [f for f in story_files if f not in processed_files]
+    if remaining_files:
+        print(f"Info: {len(remaining_files)} files not in wordcount order for {event_id}, adding at end")
+        # Sort remaining files naturally
+        remaining_files.sort(key=lambda x: natural_sort_key(x))
+        
+        # Use existing logic for processing remaining files to handle hidden stories properly
+        return get_remaining_story_files_with_proper_mapping(
+            event_id, stages, remaining_files, ordered_stories, event_type
+        )
+    
+    return ordered_stories
+
 def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo], 
                             story_files: List[str], event_type: str = None) -> List[Tuple[str, str, bool]]:
     """
@@ -219,6 +492,19 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
     Returns:
         List[Tuple[str, str, bool]]: List of (file_name, stage_info, is_battle_story)
     """
+    
+    # Try to use wordcount.json order first
+    from src.lib.wordcount_parser import get_event_story_order, load_wordcount_data
+    
+    wordcount_data = load_wordcount_data()
+    wordcount_order = get_event_story_order(event_id, wordcount_data)
+    
+    if wordcount_order:
+        # Use wordcount.json order if available
+        print(f"Using wordcount.json order for {event_id}")
+        return get_story_order_from_wordcount(
+            event_id, stages, story_files, wordcount_order, event_type
+        )
     
     # Special handling for MINISTORY events
     if event_type == 'MINISTORY':

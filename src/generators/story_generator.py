@@ -107,6 +107,21 @@ class StoryGenerator(BaseGenerator):
             prev_story: Previous story info
             next_story: Next story info
         """
+        # Get word count for this story
+        from src.lib.wordcount_parser import get_story_wordcount, format_wordcount
+        
+        # Try to extract story filename from story object
+        story_filename = None
+        if hasattr(story, 'avg_tag') and story.avg_tag:
+            # avg_tag typically contains the filename without extension
+            story_filename = story.avg_tag
+        elif hasattr(story, 'story_code') and story.story_code:
+            story_filename = story.story_code
+        
+        word_count = 0
+        if story_filename:
+            word_count = get_story_wordcount(event.event_id, story_filename) or 0
+        
         # Render story content
         rendered_content = render_story_content(story)
         
@@ -126,6 +141,8 @@ class StoryGenerator(BaseGenerator):
             'event_index_path': event_index_path,
             'prev_story': prev_story,
             'next_story': next_story,
+            'word_count': word_count,
+            'word_count_display': format_wordcount(word_count) if word_count else '',
             **paths
         }
         

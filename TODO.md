@@ -9,6 +9,63 @@
 - メインストーリーのイベントも対象とする
   - メインストーリーは data/ArknightsStoryJson/ja_JP/gamedata/story/obt/main/ にjsonファイルがある
     - メインストーリーは章ごとにディレクトリが別れていないので、章ごとにデータを分けて、各メインストーリーの章ごとにイベントページを作成する
+## 文字数表示機能（wordcount.json）実装計画
+
+### 機能概要
+- `data/ArknightsStoryJson/ja_JP/wordcount.json` に各イベントのステージの文字数一覧が記載されている
+  - 各イベントページのストーリー一覧に文字数を表示する
+  - 各ストーリーページのタイトルの下に文字数を表示する
+  - イベントのストーリーの並び順は、 wordcount.json にある並び順にステージIDがある場合にはこれを優先して採用する
+
+### データ構造
+```json
+{
+  "イベントID": {
+    "activities/イベントID/level_ファイル名": 文字数,
+    ...
+  }
+}
+```
+
+### 実装計画
+
+#### Phase 1: パーサー実装
+- [ ] **src/lib/wordcount_parser.py** - wordcount.json解析モジュール作成
+  - [ ] `load_wordcount_data()` - JSONファイルの読み込み
+  - [ ] `get_story_wordcount(event_id, story_file)` - 特定ストーリーの文字数取得
+  - [ ] `get_event_story_order(event_id)` - イベントのストーリー順序取得
+  - [ ] `get_total_wordcount(event_id)` - イベント全体の文字数合計
+
+#### Phase 2: 既存モジュール更新
+- [ ] **src/lib/stage_parser.py** - 順序決定ロジック更新
+  - [ ] `get_event_story_order()` にwordcount順序を優先する処理追加
+  - [ ] wordcount.jsonに存在しない場合は既存ロジックにフォールバック
+  
+- [ ] **src/generators/event_generator.py** - イベントページ生成更新
+  - [ ] 各ストーリーリンクに文字数を追加表示
+  - [ ] イベント全体の合計文字数を表示
+  
+- [ ] **src/generators/story_generator.py** - ストーリーページ生成更新
+  - [ ] ストーリータイトル下に文字数を表示
+
+#### Phase 3: テンプレート更新
+- [ ] **templates/event.html** - イベントページテンプレート
+  - [ ] ストーリー一覧に文字数表示（例: "OR-1 (2,645文字)"）
+  - [ ] 合計文字数の表示セクション追加
+  
+- [ ] **templates/story.html** - ストーリーページテンプレート
+  - [ ] タイトル下に文字数バッジ表示
+
+#### Phase 4: スタイリング
+- [ ] **static/css/style.css** - 文字数表示用スタイル
+  - [ ] 文字数バッジのデザイン
+  - [ ] ストーリー一覧での文字数表示レイアウト
+
+### 実装上の注意点
+1. **ファイルパスのマッピング**: wordcount.jsonのパスと実際のストーリーファイルのマッピング処理
+2. **メインストーリー対応**: メインストーリーもwordcount.jsonに含まれる場合の処理
+3. **エラーハンドリング**: wordcount.jsonに存在しないストーリーの処理
+4. **パフォーマンス**: 大量のイベントでも高速に動作するよう最適化
 
 ## メインストーリー実装計画
 
@@ -35,8 +92,8 @@
 - [x] **パーサー実装**
   - [x] `src/lib/zone_parser.py` - zone_table.jsonからメインストーリー章情報を取得
   - [x] `src/lib/main_story_parser.py` - メインストーリーファイルの解析と章ごとの分類
-  - [ ] `src/lib/stage_parser.py` - メインストーリーステージ順序の決定ロジック追加
-    - [ ] メインストーリー用の`get_main_story_order_for_chapter()`関数追加
+  - [x] `src/lib/stage_parser.py` - メインストーリーステージ順序の決定ロジック追加
+    - [x] メインストーリー用の`get_main_story_order_for_chapter()`関数追加
     - [ ] 間章（st_XX, spst_XX）の適切な配置ロジック実装
     - [ ] トポロジカルソート実装でステージ依存関係を解決
   
@@ -49,7 +106,6 @@
 - [x] **build.py更新**
   - [x] メインストーリー処理オプション追加（`--include-main`, `--main-only`）
   - [x] 章単位でのビルド制限オプション（`--main-chapters 0,1,2`）
-  - [ ] メインストーリービルド統計の追加
   
 - [ ] **設定ファイル**
   - [ ] `src/config.py` - メインストーリー関連設定追加

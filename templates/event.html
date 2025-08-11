@@ -21,6 +21,12 @@
 
 <section class="stories-section">
     <h3>ストーリー一覧</h3>
+    {% if event.total_wordcount_display %}
+    <div class="total-wordcount">
+        <span class="wordcount-label">合計文字数:</span>
+        <span class="wordcount-value">{{ event.total_wordcount_display }}</span>
+    </div>
+    {% endif %}
     
     <div class="stories-list">
         {% for story in stories %}
@@ -47,6 +53,9 @@
                     {% endif %}
                     {% if story.danger_level and story.danger_level != '-' %}
                     <span class="danger-level">{{ story.danger_level }}</span>
+                    {% endif %}
+                    {% if story.word_count_display %}
+                    <span class="word-count">{{ story.word_count_display }}</span>
                     {% endif %}
                     {% if not story.has_story %}
                     <span class="no-story-indicator">ストーリーなし</span>

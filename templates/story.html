@@ -25,6 +25,9 @@
             {% if story.avg_tag %}
             <span class="story-tag">{{ story.avg_tag }}</span>
             {% endif %}
+            {% if word_count_display %}
+            <span class="word-count">{{ word_count_display }}</span>
+            {% endif %}
         </div>
         {% if story.story_info %}
         <div class="story-info">
