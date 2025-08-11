@@ -43,3 +43,7 @@ htmlcov/
 
 # Project specific
 /data/ArknightsStoryJson/
+
+# Serena MCP
+.serena/
+.claude/settings.local.json
