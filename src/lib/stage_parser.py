@@ -482,6 +482,25 @@ def get_story_order_from_wordcount(event_id: str, stages: Dict[str, StageInfo],
             event_id, stages, remaining_files, ordered_stories, event_type
         )
     
+    # After processing wordcount files, check for stages without story files that need virtual entries
+    # This handles cases like act9d0 DM-7/DM-8 which exist in stage_table but have no story files
+    if event_id == 'act9d0':
+        # Check for stages that exist but haven't been processed
+        for stage_id, stage_info in event_stages.items():
+            # Check if this stage has been processed
+            stage_processed = False
+            for _, processed_stage_info, _ in ordered_stories:
+                if processed_stage_info.stage_id == stage_id:
+                    stage_processed = True
+                    break
+            
+            # If not processed and it's one of the known virtual story stages
+            if not stage_processed and stage_id in ['act9d0_07', 'act9d0_08']:
+                print(f"Info: Adding virtual story for {stage_id} ({stage_info.code})")
+                # Create a virtual story entry for stages that have generated story pages but no story files
+                virtual_file_name = f"virtual_{stage_id}_end"  # Assume post-battle story by default
+                ordered_stories.append((virtual_file_name, stage_info, True))
+    
     return ordered_stories
 
 def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo], 
