@@ -72,6 +72,33 @@ html[data-theme="dark"] .story-header h2 {
     line-height: 1.8;
 }
 
+.story-info-wrapper {
+    margin-top: 1rem;
+}
+
+.story-info-toggle {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.story-info-toggle:hover {
+    background-color: var(--hover-color);
+}
+
+.story-info-toggle .toggle-icon {
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+}
+
 /* Story Body */
 .story-body {
     font-size: 1.05rem;

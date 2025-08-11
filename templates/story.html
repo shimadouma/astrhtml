@@ -30,8 +30,14 @@
             {% endif %}
         </div>
         {% if story.story_info %}
-        <div class="story-info">
-            <p>{{ story.story_info }}</p>
+        <div class="story-info-wrapper">
+            <button class="story-info-toggle" onclick="toggleStorySummary()" aria-expanded="false">
+                <span class="toggle-icon">▶</span>
+                あらすじを表示
+            </button>
+            <div class="story-info" style="display: none;">
+                <p>{{ story.story_info }}</p>
+            </div>
         </div>
         {% endif %}
     </header>
@@ -85,4 +91,23 @@
         </nav>
     </footer>
 </article>
+
+<script>
+function toggleStorySummary() {
+    const button = document.querySelector('.story-info-toggle');
+    const summary = document.querySelector('.story-info');
+    const icon = document.querySelector('.toggle-icon');
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    
+    if (isExpanded) {
+        summary.style.display = 'none';
+        button.setAttribute('aria-expanded', 'false');
+        button.innerHTML = '<span class="toggle-icon">▶</span> あらすじを表示';
+    } else {
+        summary.style.display = 'block';
+        button.setAttribute('aria-expanded', 'true');
+        button.innerHTML = '<span class="toggle-icon">▼</span> あらすじを隠す';
+    }
+}
+</script>
 {% endblock %}

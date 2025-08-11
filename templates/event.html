@@ -63,12 +63,6 @@
                 </div>
             </div>
             
-            {% if story.story_info %}
-            <div class="story-summary">
-                <p>{{ story.story_info }}</p>
-            </div>
-            {% endif %}
-            
             <div class="story-footer">
                 {% if story.has_story %}
                 <a href="stories/{{ story.file_name }}.html" class="btn btn-secondary">
