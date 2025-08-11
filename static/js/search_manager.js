@@ -4,6 +4,12 @@
 
 class SearchManagerFactory {
     static async createSearchManager() {
+        // Prevent multiple search managers
+        if (window.searchManagerInitialized) {
+            return;
+        }
+        window.searchManagerInitialized = true;
+
         try {
             // Try to detect N-gram search availability
             const basePath = window.basePath || './';

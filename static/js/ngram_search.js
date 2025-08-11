@@ -61,6 +61,13 @@ class NGramSearchManager {
     }
 
     setupSearchUI() {
+        // Check if search container already exists
+        const existingContainer = document.querySelector('.search-container');
+        if (existingContainer) {
+            console.log('Search container already exists, skipping setup');
+            return;
+        }
+
         // Create search container
         const searchContainer = document.createElement('div');
         searchContainer.className = 'search-container';
@@ -93,12 +100,17 @@ class NGramSearchManager {
             }
         }
 
-        // Get references
+        // Get references (check if they already exist)
         this.searchInput = document.querySelector('.search-input');
         this.searchResults = document.querySelector('.search-results');
         this.searchClear = document.querySelector('.search-clear');
         this.queryDisplay = document.querySelector('.search-query-display');
         this.queryContent = document.querySelector('.query-content');
+
+        // If setupSearchUI was skipped, elements might not be available
+        if (!this.searchInput) {
+            console.warn('Search input not found, search functionality may not work');
+        }
     }
 
     bindEvents() {
