@@ -35,7 +35,7 @@ jobs:
           
       - name: Update submodule
         run: |
-          git submodule update --remote --merge
+          git submodule update --remote --force
           
       - name: Build site
         run: |
