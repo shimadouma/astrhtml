@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
 
     steps:
       - name: Checkout
@@ -44,3 +45,9 @@ jobs:
           git add data/ArknightsStoryJson
           git commit -m "Update ArknightsStoryJson to latest"
           git push
+
+      - name: Trigger deploy workflow
+        if: steps.check.outputs.changed == 'true'
+        run: gh workflow run deploy.yml --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
