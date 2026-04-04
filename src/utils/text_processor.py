@@ -39,13 +39,15 @@ def process_dialog_text(text: str) -> str:
         Processed text
     """
     text = clean_text(text)
-    
+
     # Convert line breaks
     text = text.replace('\\n', '<br>')
-    
-    # Handle special formatting tags if any
-    # (Add more processing as needed based on actual data)
-    
+
+    # Replace nickname placeholders with marked-up "ドクター"
+    nickname_html = '<span class="nickname" title="ゲーム内ではプレイヤー名が表示されます">ドクター</span>'
+    text = text.replace('Dr.{@nickname}', nickname_html)
+    text = text.replace('{@nickname}', nickname_html)
+
     return text
 
 

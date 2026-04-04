@@ -162,6 +162,14 @@ html[data-theme="dark"] .speaker {
     opacity: 0.9;
 }
 
+/* Nickname placeholder */
+.nickname {
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+    cursor: help;
+}
+
 /* Subtitle Blocks */
 .subtitle-block {
     text-align: center;
