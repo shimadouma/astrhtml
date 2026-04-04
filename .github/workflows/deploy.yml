@@ -3,9 +3,6 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-  schedule:
-    # Run daily at 09:00 JST (00:00 UTC) to update with latest story data
-    - cron: '0 0 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -29,12 +26,6 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync
-          
-      - name: Update submodule
-        run: |
-          cd data/ArknightsStoryJson
-          git fetch origin main
-          git checkout origin/main
           
       - name: Build site
         run: |
