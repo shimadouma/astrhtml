@@ -230,6 +230,7 @@ The script identifies several types of issues:
    ```bash
    git submodule update --init --recursive
    ```
+   - Data structure reference: `docs/arknights_story_json_data_structure.md`
 
 2. **Python Requirements**: Use Python 3.8 or higher. Dependencies are managed by uv.
 
