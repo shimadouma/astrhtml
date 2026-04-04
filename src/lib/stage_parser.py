@@ -638,10 +638,9 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
     # Build dependency graph for topological sort
     dependency_graph = build_stage_dependency_graph(event_stages)
     
-    # Execute topological sort (reverse dependencies for correct order)
-    ordered_stages = topological_sort(dependency_graph)
-    ordered_stages.reverse()  # From start stage to end stage
-    
+    # Execute topological sort (reverse for start-to-end order)
+    ordered_stages = topological_sort(dependency_graph, reverse=True)
+
     # For events with mixed dependencies (some stages have deps, some don't),
     # sort the stages that have no dependencies by stage ID
     stages_with_no_deps = [stage_id for stage_id, deps in dependency_graph.items() if len(deps) == 0]
@@ -786,30 +785,52 @@ def get_story_order_for_event(event_id: str, stages: Dict[str, StageInfo],
     
     return ordered_stories
 
-def topological_sort(graph: Dict[str, List[str]]) -> List[str]:
-    """Topological sort (Kahn's algorithm)"""
+def topological_sort(graph: Dict[str, List[str]], reverse: bool = False) -> List[str]:
+    """
+    Topological sort (Kahn's algorithm) with natural sort tiebreaker.
+
+    When reverse=True, the result is returned in reverse topological order
+    (start-to-end for dependency graphs where edges point from dependent to prerequisite).
+    The tiebreaker ensures natural ordering is preserved after reversal.
+    """
     # Calculate in-degree
     in_degree = {node: 0 for node in graph}
-    
+
     for node in graph:
         for dependency in graph[node]:
             if dependency in in_degree:
                 in_degree[dependency] += 1
-    
-    # Find nodes with in-degree 0
-    queue = [node for node, degree in in_degree.items() if degree == 0]
+
+    # When result will be reversed, use descending natural sort so that
+    # after reversal the order becomes ascending natural sort
+    sort_reverse = reverse
+
+    # Find nodes with in-degree 0, sorted with tiebreaker
+    queue = sorted(
+        [node for node, degree in in_degree.items() if degree == 0],
+        key=natural_sort_key,
+        reverse=sort_reverse
+    )
     result = []
-    
+
     while queue:
         node = queue.pop(0)
         result.append(node)
-        
+
+        new_nodes = []
         for dependency in graph.get(node, []):
             if dependency in in_degree:
                 in_degree[dependency] -= 1
                 if in_degree[dependency] == 0:
-                    queue.append(dependency)
-    
+                    new_nodes.append(dependency)
+
+        if new_nodes:
+            queue.extend(new_nodes)
+            queue.sort(key=natural_sort_key, reverse=sort_reverse)
+
+    if reverse:
+        result.reverse()
+
     return result
 
 def get_stage_display_info(stage_info: StageInfo, story_type: str) -> Dict[str, str]:
@@ -849,6 +870,9 @@ def get_main_story_order_for_chapter(chapter: int, stages: Dict[str, StageInfo],
     chapter_stages = {}
     
     for stage_id, stage_info in stages.items():
+        # Skip hard mode stages (e.g. main_02-01#f#)
+        if '#' in stage_id:
+            continue
         # Main story stages: main_XX-YY
         if stage_id.startswith(f'main_{chapter:02d}-'):
             chapter_stages[stage_id] = stage_info
@@ -876,9 +900,8 @@ def get_main_story_order_for_chapter(chapter: int, stages: Dict[str, StageInfo],
     # Build dependency graph for topological sort
     dependency_graph = build_stage_dependency_graph(chapter_stages)
     
-    # Execute topological sort
-    ordered_stages = topological_sort(dependency_graph)
-    ordered_stages.reverse()  # From start stage to end stage
+    # Execute topological sort (reverse for start-to-end order)
+    ordered_stages = topological_sort(dependency_graph, reverse=True)
     
     # Order story files based on sort results
     ordered_stories = []
