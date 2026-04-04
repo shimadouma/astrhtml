@@ -1,0 +1,11 @@
+[project]
+name = "astrhtml"
+version = "0.1.0"
+description = "Static site generator for Arknights event stories"
+requires-python = ">=3.8"
+dependencies = [
+    "Jinja2>=3.1.2",
+    "python-dateutil>=2.8.2",
+    "watchdog>=3.0.0",
+    "beautifulsoup4>=4.12.2",
+]

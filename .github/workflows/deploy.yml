@@ -23,15 +23,12 @@ jobs:
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          uv sync
           
       - name: Update submodule
         run: |
@@ -41,11 +38,11 @@ jobs:
           
       - name: Build site
         run: |
-          python build.py
-          
+          uv run python build.py
+
       - name: Validate event story generation
         run: |
-          python scripts/check_empty_events.py
+          uv run python scripts/check_empty_events.py
           
       - name: Setup Pages
         uses: actions/configure-pages@v3

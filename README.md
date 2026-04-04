@@ -22,6 +22,7 @@ This project converts Arknights in-game event stories into readable HTML format 
 ### Requirements
 
 - Python 3.8 or higher
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Git
 
 ### Installation
@@ -32,9 +33,9 @@ This project converts Arknights in-game event stories into readable HTML format 
    cd astrhtml
    ```
 
-2. Install Python dependencies:
+2. Install Python dependencies (creates a project-local `.venv`):
    ```bash
-   pip install -r requirements.txt
+   uv sync
    ```
 
 3. Update submodules:
@@ -50,24 +51,24 @@ This project converts Arknights in-game event stories into readable HTML format 
 
 Build all events:
 ```bash
-python build.py
+uv run python build.py
 ```
 
 Test build with limited events:
 ```bash
-python build.py --limit 5
+uv run python build.py --limit 5
 ```
 
 Clean build (removes previous output):
 ```bash
-python build.py --clean
+uv run python build.py --clean
 ```
 
 #### Preview the Site
 
 Start local preview server:
 ```bash
-python preview.py
+uv run python preview.py
 ```
 
 This will:
@@ -78,23 +79,23 @@ This will:
 Preview server options:
 ```bash
 # Use custom port
-python preview.py --port 3000
+uv run python preview.py --port 3000
 
 # Don't automatically open browser
-python preview.py --no-browser
+uv run python preview.py --no-browser
 
 # Allow external connections
-python preview.py --host 0.0.0.0
+uv run python preview.py --host 0.0.0.0
 ```
 
-**Note**: You must run `python build.py` first to generate the site before using the preview server.
+**Note**: You must run `uv run python build.py` first to generate the site before using the preview server.
 
 ### Development Workflow
 
-1. Build the site: `python build.py --limit 5`
-2. Start preview server: `python preview.py`
+1. Build the site: `uv run python build.py --limit 5`
+2. Start preview server: `uv run python preview.py`
 3. Make changes to code/templates
-4. Rebuild: `python build.py --limit 5`
+4. Rebuild: `uv run python build.py --limit 5`
 5. Refresh browser to see changes
 
 ### GitHub Pages Deployment
@@ -157,12 +158,12 @@ You can modify settings in `src/config.py`:
 
 Test with limited build:
 ```bash
-python build.py --limit 1
+uv run python build.py --limit 1
 ```
 
 Verify dependencies:
 ```bash
-python -c "import jinja2, pathlib; print('Dependencies OK')"
+uv run python -c "import jinja2, pathlib; print('Dependencies OK')"
 ```
 
 ## Troubleshooting
@@ -176,8 +177,7 @@ python -c "import jinja2, pathlib; print('Dependencies OK')"
 
 2. **Python dependency errors**:
    ```bash
-   pip install --upgrade pip
-   pip install -r requirements.txt
+   uv sync
    ```
 
 3. **Build errors**:
@@ -185,12 +185,13 @@ python -c "import jinja2, pathlib; print('Dependencies OK')"
    - Confirm using Python 3.8 or higher
 
 4. **Preview server errors**:
-   - Run `python build.py` first to generate the site
-   - Check if port is already in use: `python preview.py --port 8001`
+   - Run `uv run python build.py` first to generate the site
+   - Check if port is already in use: `uv run python preview.py --port 8001`
 
 ## Technology Stack
 
 - **Language**: Python 3.8+
+- **Package Manager**: [uv](https://docs.astral.sh/uv/)
 - **Template Engine**: Jinja2
 - **Static Site Generator**: Custom implementation
 - **Deployment**: GitHub Pages + GitHub Actions

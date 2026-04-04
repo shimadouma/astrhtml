@@ -38,19 +38,19 @@ Note: This applies only to the generated website content for end users. All sour
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+uv sync
 
 # Build all events
-python3 build.py
+uv run python build.py
 
 # Test build (limited events)
-python3 build.py --limit 5
+uv run python build.py --limit 5
 
 # Clean build
-python3 build.py --clean
+uv run python build.py --clean
 
 # Start local preview server
-python3 preview.py
+uv run python preview.py
 ```
 
 ## Local Preview
@@ -59,36 +59,36 @@ python3 preview.py
 
 ```bash
 # Basic usage (opens browser automatically on port 8000)
-python3 preview.py
+uv run python preview.py
 
 # Custom port
-python3 preview.py --port 3000
+uv run python preview.py --port 3000
 
 # Don't open browser automatically
-python3 preview.py --no-browser
+uv run python preview.py --no-browser
 
 # Allow external connections
-python3 preview.py --host 0.0.0.0
+uv run python preview.py --host 0.0.0.0
 ```
 
 ### Development Workflow
 
-1. **Build the site**: `python3 build.py --limit 5`
-2. **Start preview server**: `python3 preview.py`
+1. **Build the site**: `uv run python build.py --limit 5`
+2. **Start preview server**: `uv run python preview.py`
 3. **Make code changes**
-4. **Rebuild**: `python3 build.py --limit 5`
+4. **Rebuild**: `uv run python build.py --limit 5`
 5. **Refresh browser** to see changes
 
-**Important**: You must run `python3 build.py` first to generate the `dist/` directory before using the preview server.
+**Important**: You must run `uv run python build.py` first to generate the `dist/` directory before using the preview server.
 
 ## Test Commands
 
 ```bash
 # Check if dependencies are correctly installed
-python3 -c "import jinja2, pathlib; print('Dependencies OK')"
+uv run python -c "import jinja2, pathlib; print('Dependencies OK')"
 
 # Verify build system functionality
-python3 build.py --limit 1
+uv run python build.py --limit 1
 
 # Update submodules
 git submodule update --remote --merge
@@ -104,10 +104,10 @@ The build process now includes automatic link checking by default:
 
 ```bash
 # Build with automatic link checking (default)
-python3 build.py
+uv run python build.py
 
 # Skip link checking if needed
-python3 build.py --no-check-links
+uv run python build.py --no-check-links
 ```
 
 ### Manual Link Checking
@@ -116,23 +116,23 @@ You can also run the link checker manually:
 
 ```bash
 # Check all links in the generated site
-python3 scripts/check_links.py
+uv run python scripts/check_links.py
 
 # Check links with detailed output
-python3 scripts/check_links.py --verbose
+uv run python scripts/check_links.py --verbose
 
 # Check links and fail with exit code if broken links found
-python3 scripts/check_links.py --fail-on-broken
+uv run python scripts/check_links.py --fail-on-broken
 ```
 
 ### Development Workflow with Link Checking
 
 **During development and testing, always ensure the link check passes:**
 
-1. **Build the site**: `python3 build.py --limit 5`
+1. **Build the site**: `uv run python build.py --limit 5`
 2. **Verify links are working**: The build will automatically check links and fail if any are broken
 3. **Fix any broken links** if the build fails
-4. **Rebuild and verify**: `python3 build.py --limit 5`
+4. **Rebuild and verify**: `uv run python build.py --limit 5`
 
 **Before deploying or committing changes:**
 - Always run a full build with link checking enabled
@@ -149,7 +149,7 @@ Use the enhanced event validator to identify comprehensive story generation issu
 
 ```bash
 # Check for event story generation and linking issues
-python3 scripts/check_empty_events.py
+uv run python scripts/check_empty_events.py
 
 # This script performs comprehensive validation:
 # - Checks all event directories in dist/events/
@@ -174,14 +174,14 @@ The script identifies several types of issues:
 
 **During development and testing, always verify complete story generation:**
 
-1. **Build the site**: `python3 build.py --limit 5`
-2. **Run enhanced validation**: `python3 scripts/check_empty_events.py`
+1. **Build the site**: `uv run python build.py --limit 5`
+2. **Run enhanced validation**: `uv run python scripts/check_empty_events.py`
 3. **Fix any issues found**:
    - **No files**: Check story data processing logic
    - **Unlinked files**: Verify event page generation and template rendering
    - **Partial linking**: Check story order determination logic
    - **Broken links**: Verify filename generation consistency
-4. **Rebuild and verify**: `python3 build.py --limit 5`
+4. **Rebuild and verify**: `uv run python build.py --limit 5`
 
 **Before deploying or committing changes:**
 - Always run the enhanced validation after a full build
@@ -231,11 +231,11 @@ The script identifies several types of issues:
    git submodule update --init --recursive
    ```
 
-2. **Python Requirements**: Use Python 3.8 or higher
+2. **Python Requirements**: Use Python 3.8 or higher. Dependencies are managed by uv.
 
 3. **Pre-build Verification**: 
    - Confirm `data/ArknightsStoryJson` directory exists
-   - Ensure requirements.txt dependencies are installed
+   - Run `uv sync` to install dependencies
 
 4. **HTML File Names**: 
    - Event pages: `events/{event_id}/index.html`
@@ -266,8 +266,9 @@ The script identifies several types of issues:
 
 1. **ImportError**: 
    ```bash
-   pip install -r requirements.txt
+   uv sync
    ```
+   If uv is not installed, see https://docs.astral.sh/uv/getting-started/installation/
 
 2. **Empty Submodule**:
    ```bash
@@ -279,8 +280,8 @@ The script identifies several types of issues:
    - Verify `data/ArknightsStoryJson` exists
 
 4. **Preview Server Error**:
-   - Run `python3 build.py` first to generate the site
-   - If port is in use, try: `python3 preview.py --port 8001`
+   - Run `uv run python build.py` first to generate the site
+   - If port is in use, try: `uv run python preview.py --port 8001`
 
 ## Deployment
 
