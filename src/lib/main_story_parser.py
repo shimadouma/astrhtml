@@ -18,6 +18,7 @@ class MainStoryFile:
         self.stage_number = None
         self.stage_type = None  # 'beg', 'end', 'st', 'spst'
         self.stage_id = None
+        self.variation = None  # e.g. 'variation01' for branching stories
         
         self._parse_filename()
     
@@ -26,13 +27,15 @@ class MainStoryFile:
         base_name = self.filename.replace('level_', '').replace('.json', '')
         
         if base_name.startswith('main_'):
-            # level_main_XX-YY_beg.json or level_main_XX-YY_end.json
-            pattern = r'main_(\d+)-(\d+)_(beg|end)'
+            # level_main_XX-YY_beg.json, level_main_XX-YY_end.json,
+            # or level_main_XX-YY_end_variation01.json (branching story)
+            pattern = r'main_(\d+)-(\d+)_(beg|end)(?:_(variation\d+))?'
             match = re.match(pattern, base_name)
             if match:
                 self.chapter = int(match.group(1))
                 self.stage_number = int(match.group(2))
                 self.stage_type = match.group(3)
+                self.variation = match.group(4)  # e.g. "variation01" or None
                 self.stage_id = f"main_{self.chapter:02d}-{self.stage_number:02d}"
         
         elif base_name.startswith('st_'):

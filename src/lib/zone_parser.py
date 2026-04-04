@@ -7,6 +7,20 @@ from .data_loader import load_json
 from ..models.zone_info import ZoneInfo
 
 
+def _chapter_to_kanji(num: int) -> str:
+    """Convert chapter number to Japanese kanji numeral (e.g. 15 -> '十五')"""
+    if num == 0:
+        return ''
+    kanji_digits = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+    if num < 10:
+        return kanji_digits[num]
+    elif num < 20:
+        return '十' + (kanji_digits[num % 10] if num % 10 else '')
+    elif num < 100:
+        return kanji_digits[num // 10] + '十' + (kanji_digits[num % 10] if num % 10 else '')
+    return str(num)
+
+
 def load_zone_table(data_path: Path) -> Dict[str, ZoneInfo]:
     """Load zone_table.json and return dictionary of ZoneInfo objects"""
     zone_table_path = data_path / "gamedata" / "excel" / "zone_table.json"
@@ -18,25 +32,51 @@ def load_zone_table(data_path: Path) -> Dict[str, ZoneInfo]:
     zones_data = data.get('zones', {})
     
     for zone_id, zone_data in zones_data.items():
-        # Only process main story zones
-        if not zone_id.startswith('main_') or not zone_data.get('type') == 'MAINLINE':
+        zone_type = zone_data.get('type', '')
+
+        # Process standard MAINLINE zones (main_0 ~ main_14)
+        # and MAINLINE_ACTIVITY zones (act*mainss_zone* for ch15+)
+        if zone_id.startswith('main_') and zone_type == 'MAINLINE':
+            # Chapter number from zone_id (e.g. main_9 -> 9)
+            try:
+                chapter_number = int(zone_id.replace('main_', ''))
+            except (ValueError, TypeError):
+                continue
+        elif zone_type == 'MAINLINE_ACTIVITY':
+            # Chapter number from zoneNameTitleCurrent (e.g. "15", "16")
+            try:
+                chapter_number = int(zone_data.get('zoneNameTitleCurrent', '0'))
+            except (ValueError, TypeError):
+                continue
+        else:
             continue
-        
+
         # Check if story files exist for this chapter
-        chapter_number = zone_data.get('zoneIndex', 0)
         story_dir = data_path / "gamedata" / "story" / "obt" / "main"
         chapter_pattern = f"level_main_{chapter_number:02d}-*"
         has_stories = len(list(story_dir.glob(chapter_pattern))) > 0 if story_dir.exists() else False
-        
+
         # Override canPreview if we have story files
         can_preview = zone_data.get('canPreview', False) or has_stories
-            
-        zones[zone_id] = ZoneInfo(
-            zone_id=zone_id,
-            zone_index=zone_data.get('zoneIndex', 0),
-            zone_type=zone_data.get('type', ''),
-            zone_name_first=zone_data.get('zoneNameFirst', ''),
-            zone_name_second=zone_data.get('zoneNameSecond', ''),
+
+        # For MAINLINE_ACTIVITY zones, swap first/second names
+        # (first is English title, second is Japanese title)
+        if zone_type == 'MAINLINE_ACTIVITY':
+            zone_name_first = f"第{_chapter_to_kanji(chapter_number)}章"
+            zone_name_second = zone_data.get('zoneNameSecond', '')
+        else:
+            zone_name_first = zone_data.get('zoneNameFirst', '')
+            zone_name_second = zone_data.get('zoneNameSecond', '')
+
+        # Use main_N as canonical zone_id for consistent lookup
+        canonical_zone_id = f"main_{chapter_number}"
+
+        zones[canonical_zone_id] = ZoneInfo(
+            zone_id=canonical_zone_id,
+            zone_index=chapter_number,
+            zone_type='MAINLINE',
+            zone_name_first=zone_name_first,
+            zone_name_second=zone_name_second,
             zone_name_title_current=zone_data.get('zoneNameTitleCurrent', ''),
             zone_name_title_ex=zone_data.get('zoneNameTitleEx', ''),
             zone_name_third=zone_data.get('zoneNameThird', ''),

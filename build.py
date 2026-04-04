@@ -205,8 +205,17 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
                 for story_file in chapter_story_files:
                     story_path = DATA_PATH / "gamedata" / "story" / "obt" / "main" / story_file.filename
                     story_file_paths.append(story_path)
-                
+
                 stories = create_stories_from_files(story_file_paths)
+
+                # Append variation suffix to story_code for branching stories
+                # so that each variation gets a unique HTML file
+                for i, story in enumerate(stories):
+                    if story and i < len(chapter_story_files):
+                        sf = chapter_story_files[i]
+                        if sf.variation:
+                            story.story_code = f"{story.story_code}_{sf.variation}"
+
                 if stories:
                     print(f"  Generated {len(stories)} story pages for chapter {chapter:02d}")
                     story_gen.generate_main_story_pages(activity, stories, DIST_PATH)

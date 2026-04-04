@@ -62,20 +62,35 @@ class MainStoryGenerator(BaseGenerator):
             story = story_dict.get(file_name)
             
             if story:
-                # Extract story type from filename for display
+                # Extract story type and variation from filename for display
                 story_type = 'story'  # default
+                variation = None
                 base_name = file_name.replace('level_', '').replace('.json', '')
+
+                import re
+                var_match = re.search(r'_(variation\d+)$', base_name)
+                if var_match:
+                    variation = var_match.group(1)
+
                 if '_beg' in base_name:
                     story_type = 'beg'
                 elif '_end' in base_name:
                     story_type = 'end'
-                
+
                 # Get display info
                 display_info = get_main_story_display_info(stage_info, story_type)
-                
+
                 # Use the same filename logic as story generator
                 story_file_name = Path(story.story_code).stem if story.story_code else f"story_{file_name}"
-                
+
+                # Append variation suffix for branching stories
+                if variation:
+                    story_file_name = f"{story_file_name}_{variation}"
+                    # Add variation label to story phase
+                    var_num = re.search(r'\d+', variation)
+                    if var_num:
+                        display_info['story_phase'] = f"分岐{var_num.group()}"
+
                 story_data = {
                     'story_name': story.story_name,
                     'story_code': story.story_code,

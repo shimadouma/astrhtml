@@ -884,15 +884,20 @@ def get_main_story_order_for_chapter(chapter: int, stages: Dict[str, StageInfo],
     story_stage_mapping = {}
     for file_name in story_files:
         base_name = file_name.replace('level_', '').replace('.json', '')
-        
+
         if base_name.startswith('main_'):
-            # level_main_XX-YY_beg.json or level_main_XX-YY_end.json
-            if '_beg' in base_name:
-                stage_id = base_name.replace('_beg', '')
-                story_stage_mapping[file_name] = (stage_id, 'beg')
-            elif '_end' in base_name:
-                stage_id = base_name.replace('_end', '')
-                story_stage_mapping[file_name] = (stage_id, 'end')
+            # level_main_XX-YY_beg.json, level_main_XX-YY_end.json,
+            # or level_main_XX-YY_end_variation01.json (branching story)
+            variation_match = re.match(r'(main_\d+-\d+)_(beg|end)(?:_(variation\d+))?', base_name)
+            if variation_match:
+                stage_id = variation_match.group(1)
+                story_type = variation_match.group(2)
+                variation = variation_match.group(3)
+                if variation:
+                    # Branching variation: treat as a separate end variant
+                    story_stage_mapping[file_name] = (stage_id, f'{story_type}_{variation}')
+                else:
+                    story_stage_mapping[file_name] = (stage_id, story_type)
         elif base_name.startswith('st_') or base_name.startswith('spst_'):
             # level_st_XX-YY.json or level_spst_XX-YY.json
             story_stage_mapping[file_name] = (base_name, 'story')
@@ -910,10 +915,11 @@ def get_main_story_order_for_chapter(chapter: int, stages: Dict[str, StageInfo],
         if stage_id in chapter_stages:
             stage_info = chapter_stages[stage_id]
             
-            # Find battle stories (beg/end)
+            # Find battle stories (beg/end) and variations
             beg_file = None
             end_file = None
-            
+            variation_files = []
+
             for file_name, (mapped_stage_id, story_type) in story_stage_mapping.items():
                 if mapped_stage_id == stage_id:
                     if story_type == 'beg':
@@ -923,14 +929,24 @@ def get_main_story_order_for_chapter(chapter: int, stages: Dict[str, StageInfo],
                     elif story_type == 'story':
                         # Interlude story
                         ordered_stories.append((file_name, stage_info, False))
-            
+                    elif story_type.startswith(('beg_variation', 'end_variation')):
+                        # Branching story variation
+                        variation_files.append((file_name, story_type))
+
+            # Sort variations by name for consistent ordering
+            variation_files.sort(key=lambda x: x[1])
+
             # Add pre-battle story
             if beg_file:
                 ordered_stories.append((beg_file, stage_info, True))
-            
-            # Add post-battle story  
+
+            # Add post-battle story
             if end_file:
                 ordered_stories.append((end_file, stage_info, True))
+
+            # Add branching variations after the main story
+            for var_file, _ in variation_files:
+                ordered_stories.append((var_file, stage_info, True))
     
     return ordered_stories
 
