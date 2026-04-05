@@ -1,0 +1,52 @@
+{
+  "name": "Python Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "USER_UID": "${localEnv:UID:1000}",
+      "USER_GID": "${localEnv:GID:1000}"
+    }
+  },
+  "remoteUser": "ubuntu",
+  "containerUser": "ubuntu",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.debugpy",
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker",
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.terminal.activateEnvironment": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          }
+        },
+        "claudeCode.allowDangerouslySkipPermissions": true
+      }
+    }
+  },
+  "containerEnv": {
+    "SSH_AUTH_SOCK": "/tmp/ssh-auth.sock"
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/inside-container.settings.local.json,target=${containerWorkspaceFolder}/.claude/settings.local.json,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/ubuntu/.gitconfig,type=bind,consistency=cached",
+    "source=${localEnv:GH_CONFIG_DIR},target=/home/ubuntu/.config/gh,type=bind,consistency=cached",
+    "source=${localEnv:SSH_AUTH_SOCK},target=/tmp/ssh-auth.sock,type=bind,consistency=cached"
+    ,"source=${localEnv:HOME}/.claude,target=/host-claude,type=bind,readonly",
+    "source=${localEnv:HOME}/.claude.json,target=/host-claude.json,type=bind,readonly"
+  ],
+  "initializeCommand": "if [ -z \"${GH_CONFIG_DIR:-}\" ]; then export GH_CONFIG_DIR=\"${XDG_CONFIG_HOME:-$HOME/.config}/gh\"; fi && if [ ! -d \"$GH_CONFIG_DIR\" ]; then mkdir -p \"$GH_CONFIG_DIR\"; fi",
+  "forwardPorts": [],
+  "runArgs": ["--network=host"],
+  "postStartCommand": "/usr/local/bin/devcontainer-post-start.sh",
+  "postCreateCommand": "uv --version && python3 --version && claude --version"
+}
