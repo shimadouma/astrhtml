@@ -91,6 +91,20 @@ class NGramSearchManager {
                        placeholder="ストーリー内容で全文検索..."
                        autocomplete="off">
                 <button class="search-clear" style="display: none;">×</button>
+                <button class="search-help-btn" title="検索ヒント">?</button>
+            </div>
+            <div class="search-help-panel" style="display: none;">
+                <div class="search-help-content">
+                    <div class="search-help-title">検索の使い方</div>
+                    <dl class="search-help-list">
+                        <dt>基本検索</dt>
+                        <dd>キーワードを入力すると、ストーリー本文から全文検索します（2文字以上）</dd>
+                        <dt>AND検索</dt>
+                        <dd>スペース区切りで複数キーワードを入力すると、すべてを含むストーリーを検索します<br><span class="search-help-example">例: ドクター ケルシー</span></dd>
+                        <dt>検索対象</dt>
+                        <dd>イベントストーリー・メインストーリーの台詞テキストが対象です</dd>
+                    </dl>
+                </div>
             </div>
             <div class="search-query-display" style="display: none;">
                 <span class="query-label">検索条件:</span>
@@ -116,6 +130,8 @@ class NGramSearchManager {
         this.searchInput = document.querySelector('.search-input');
         this.searchResults = document.querySelector('.search-results');
         this.searchClear = document.querySelector('.search-clear');
+        this.searchHelpBtn = document.querySelector('.search-help-btn');
+        this.searchHelpPanel = document.querySelector('.search-help-panel');
         this.queryDisplay = document.querySelector('.search-query-display');
         this.queryContent = document.querySelector('.query-content');
         this.searchLoading = document.querySelector('.search-loading');
@@ -127,6 +143,14 @@ class NGramSearchManager {
         this.searchInput.addEventListener('input', (e) => {
             this.debouncedSearch(e.target.value);
         });
+
+        if (this.searchHelpBtn && this.searchHelpPanel) {
+            this.searchHelpBtn.addEventListener('click', () => {
+                const visible = this.searchHelpPanel.style.display !== 'none';
+                this.searchHelpPanel.style.display = visible ? 'none' : 'block';
+                this.searchHelpBtn.classList.toggle('active', !visible);
+            });
+        }
 
         if (this.searchClear) {
             this.searchClear.addEventListener('click', () => this.clearSearch());

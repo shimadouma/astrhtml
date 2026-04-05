@@ -192,6 +192,78 @@ body {
     opacity: 1;
 }
 
+.search-help-btn {
+    position: absolute;
+    right: -2.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-color);
+    background: var(--card-background);
+    color: var(--text-color);
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.3s, border-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.search-help-btn:hover,
+.search-help-btn.active {
+    opacity: 1;
+    border-color: var(--secondary-color);
+}
+
+.search-help-panel {
+    max-width: 600px;
+    margin: 0.8rem auto 0;
+    padding: 1rem 1.2rem;
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-color);
+}
+
+.search-help-title {
+    font-weight: bold;
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+}
+
+.search-help-list {
+    margin: 0;
+}
+
+.search-help-list dt {
+    font-weight: bold;
+    margin-top: 0.5rem;
+}
+
+.search-help-list dt::before {
+    content: "\25B6";
+    font-size: 0.6em;
+    margin-right: 0.4em;
+    vertical-align: middle;
+}
+
+.search-help-list dd {
+    margin-left: 1.2rem;
+    margin-bottom: 0.2rem;
+}
+
+.search-help-example {
+    color: var(--secondary-color);
+    font-size: 0.85rem;
+}
+
 .search-results {
     position: relative;
     max-width: 600px;
