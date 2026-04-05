@@ -201,6 +201,15 @@ class NGramSearchIndexGenerator(BaseGenerator):
                     all_speakers.update(self._extract_speakers(story))
 
                 combined_content = " ".join(full_content)
+                story_stem = Path(story_list[0].story_code).stem if story_list[0].story_code else "story"
+
+                # Main story chapters use a different URL pattern
+                if getattr(event.activity_info, "is_main_story", False):
+                    chapter_num = getattr(event.activity_info.zone_info, "chapter_number", 0)
+                    url = f"main/chapter_{chapter_num:02d}/stories/{story_stem}.html"
+                else:
+                    url = f"events/{event.event_id}/stories/{story_stem}.html"
+
                 stage = {
                     "stage_id": stage_id,
                     "stage_name": story_list[0].story_name or "",
@@ -208,7 +217,7 @@ class NGramSearchIndexGenerator(BaseGenerator):
                     "event_name": event.event_name or "",
                     "stage_type": self._determine_stage_type(stage_id),
                     "stage_info": story_list[0].story_info or "",
-                    "url": f"events/{event.event_id}/stories/{Path(story_list[0].story_code).stem if story_list[0].story_code else 'story'}.html",
+                    "url": url,
                     "full_content": combined_content,
                     "speakers": sorted(all_speakers),
                     "content_length": len(combined_content),

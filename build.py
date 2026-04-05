@@ -10,6 +10,7 @@ from src.config import (
     CLEAN_BUILD, COPY_STATIC, SORT_EVENTS_BY_DATE,
     INCLUDE_REPLICATE_EVENTS, INCLUDE_MAIN_STORY_BY_DEFAULT
 )
+from src.models.event import Event
 from src.lib.event_parser import get_events_with_stories, sort_events_by_date
 from src.lib.story_parser import parse_event_stories, create_stories_from_files
 from src.lib.zone_parser import load_zone_table, get_available_main_chapters, get_ordered_main_zones
@@ -143,82 +144,97 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
     search_gen = SearchIndexGenerator()
     bookmark_gen = BookmarkGenerator(output_dir=DIST_PATH)
     
-    # Generate search index (for events)
-    if events:
+    # Parse main story chapters into Event wrappers for search indexing
+    main_story_events = []
+    chapters_files = {}
+    if main_story_activities:
+        print(f"\nParsing main story chapters...")
+        chapters_files = group_files_by_chapter(story_files)
+
+        for activity in main_story_activities:
+            chapter = activity.zone_info.chapter_number
+            chapter_story_files = chapters_files.get(chapter, [])
+            if not chapter_story_files:
+                continue
+
+            story_file_paths = [
+                DATA_PATH / "gamedata" / "story" / "obt" / "main" / sf.filename
+                for sf in chapter_story_files
+            ]
+            chapter_stories = create_stories_from_files(story_file_paths)
+
+            # Append variation suffix for branching stories
+            for i, story in enumerate(chapter_stories):
+                if story and i < len(chapter_story_files):
+                    sf = chapter_story_files[i]
+                    if sf.variation:
+                        story.story_code = f"{story.story_code}_{sf.variation}"
+
+            # Create an Event wrapper so the search indexer can process it
+            if chapter_stories:
+                chapter_event = Event(
+                    activity_info=activity,
+                    stories=[s for s in chapter_stories if s],
+                )
+                main_story_events.append(chapter_event)
+
+    # Generate search index (events + main story)
+    all_searchable = events + main_story_events
+    if all_searchable:
         if ngram_tuning:
             print("Running N-gram performance tuning...")
-            run_performance_tuning(events, DIST_PATH)
+            run_performance_tuning(all_searchable, DIST_PATH)
         elif use_ngram:
             print("Generating N-gram search index...")
             ngram_gen = NGramSearchIndexGenerator(ngram_config or NGramConfig())
-            ngram_gen.generate(events, DIST_PATH)
+            ngram_gen.generate(all_searchable, DIST_PATH)
         else:
             print("Generating basic search index...")
-            search_gen.generate(events, DIST_PATH)
-    
+            search_gen.generate(all_searchable, DIST_PATH)
+
     # Generate index page (with main story if available)
     print("Generating index page...")
     index_gen.generate(events, main_story_activities, DIST_PATH)
-    
+
     # Generate bookmarks page
     print("Generating bookmarks page...")
     bookmark_gen.generate_bookmarks_page()
-    
+
     # Generate event and story pages
     if events:
         for i, event in enumerate(events, 1):
             print(f"[{i}/{len(events)}] Generating pages for {event.event_name}")
-            
+
             # Generate event page
             event_gen.generate(event, DIST_PATH)
-            
+
             # Generate story pages
             if event.stories:
                 story_gen.generate(event, DIST_PATH)
-    
+
     # Generate main story pages
     if main_story_activities:
         print(f"\nGenerating main story pages...")
-        
+
         # Generate main story index
         print("Generating main story index page...")
         main_story_gen.generate_main_index(main_story_activities, DIST_PATH)
-        
-        # Group story files by chapter for processing
-        chapters_files = group_files_by_chapter(story_files)
-        
+
         # Generate each chapter
         for activity in main_story_activities:
             chapter = activity.zone_info.chapter_number
             print(f"Generating chapter {chapter:02d}: {activity.zone_info.display_title}")
-            
-            # Get story files for this chapter
+
             chapter_story_files = chapters_files.get(chapter, [])
-            
+
             # Generate chapter page
             main_story_gen.generate_chapter(activity, stages, chapter_story_files, DIST_PATH)
-            
-            # Generate individual story pages
-            if chapter_story_files:
-                # Create story objects from files
-                story_file_paths = []
-                for story_file in chapter_story_files:
-                    story_path = DATA_PATH / "gamedata" / "story" / "obt" / "main" / story_file.filename
-                    story_file_paths.append(story_path)
 
-                stories = create_stories_from_files(story_file_paths)
-
-                # Append variation suffix to story_code for branching stories
-                # so that each variation gets a unique HTML file
-                for i, story in enumerate(stories):
-                    if story and i < len(chapter_story_files):
-                        sf = chapter_story_files[i]
-                        if sf.variation:
-                            story.story_code = f"{story.story_code}_{sf.variation}"
-
-                if stories:
-                    print(f"  Generated {len(stories)} story pages for chapter {chapter:02d}")
-                    story_gen.generate_main_story_pages(activity, stories, DIST_PATH)
+            # Generate individual story pages using already-parsed Event wrapper
+            matching = [e for e in main_story_events if e.activity_info is activity]
+            if matching and matching[0].stories:
+                print(f"  Generated {len(matching[0].stories)} story pages for chapter {chapter:02d}")
+                story_gen.generate_main_story_pages(activity, matching[0].stories, DIST_PATH)
     
     # Run link health check if enabled
     if check_links:
