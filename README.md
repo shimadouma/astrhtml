@@ -23,6 +23,7 @@ This project converts Arknights in-game event stories into readable HTML format 
 
 - Python 3.8 or higher
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
+- [Rust](https://rustup.rs/) (for building the search index tool)
 - Git
 
 ### Installation
@@ -38,7 +39,12 @@ This project converts Arknights in-game event stories into readable HTML format 
    uv sync
    ```
 
-3. Update submodules:
+3. Build the search index tool (Rust):
+   ```bash
+   cd tools/bigram-index && cargo build --release && cd ../..
+   ```
+
+4. Update submodules:
    ```bash
    git submodule update --remote --merge
    ```
@@ -166,6 +172,24 @@ Verify dependencies:
 uv run python -c "import jinja2, pathlib; print('Dependencies OK')"
 ```
 
+### End-to-End Tests (Playwright)
+
+Run integration tests for the search functionality using headless Chromium:
+
+```bash
+# Install test dependencies
+uv sync --group dev
+
+# Install Playwright browser
+uv run playwright install chromium
+
+# Build the site first
+uv run python build.py --limit 3 --no-check-links
+
+# Run tests
+uv run pytest tests/e2e/test_search.py -v
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -190,10 +214,12 @@ uv run python -c "import jinja2, pathlib; print('Dependencies OK')"
 
 ## Technology Stack
 
-- **Language**: Python 3.8+
-- **Package Manager**: [uv](https://docs.astral.sh/uv/)
+- **Language**: Python 3.8+, Rust (search index builder)
+- **Package Manager**: [uv](https://docs.astral.sh/uv/), Cargo
 - **Template Engine**: Jinja2
 - **Static Site Generator**: Custom implementation
+- **Search**: Bi-gram inverted index (Rust) + client-side two-stage search (JavaScript)
+- **Testing**: Playwright (headless Chromium e2e tests)
 - **Deployment**: GitHub Pages + GitHub Actions
 - **Styling**: Pure CSS with CSS variables
 - **Frontend**: Vanilla JavaScript

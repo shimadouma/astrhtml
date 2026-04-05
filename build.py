@@ -301,24 +301,6 @@ def main():
         help='Use basic search index instead of N-gram search (default: N-gram enabled)'
     )
     parser.add_argument(
-        '--ngram-sizes',
-        type=str,
-        default='2,3',
-        help='Comma-separated N-gram sizes (default: 2,3)'
-    )
-    parser.add_argument(
-        '--ngram-min-freq',
-        type=int,
-        default=2,
-        help='Minimum N-gram frequency to include in index (default: 2)'
-    )
-    parser.add_argument(
-        '--ngram-max-index',
-        type=int,
-        default=100000,
-        help='Maximum index size in bytes (default: 100000)'
-    )
-    parser.add_argument(
         '--ngram-max-chunk',
         type=int,
         default=500000,
@@ -355,16 +337,7 @@ def main():
     # Parse N-gram configuration
     ngram_config = None
     if use_ngram or args.ngram_tuning:
-        try:
-            ngram_sizes = [int(size.strip()) for size in args.ngram_sizes.split(',')]
-        except ValueError:
-            print("Error: --ngram-sizes must be comma-separated integers", file=sys.stderr)
-            sys.exit(1)
-        
         ngram_config = NGramConfig(
-            ngram_sizes=ngram_sizes,
-            min_frequency=args.ngram_min_freq,
-            max_index_size=args.ngram_max_index,
             max_chunk_size=args.ngram_max_chunk,
             debug_output=args.ngram_debug
         )

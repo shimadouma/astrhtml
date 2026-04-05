@@ -1,16 +1,20 @@
 /**
- * N-gram based search functionality with chunked data loading
+ * Bi-gram based full-text search with two-stage architecture:
+ *   Stage 1: Bi-gram inverted index lookup for candidate filtering
+ *   Stage 2: Full-text verification via String.includes()
  */
 
 class NGramSearchManager {
     constructor() {
         this.searchIndex = null;
         this.loadedChunks = new Map();
+        this.chunkAccessOrder = []; // LRU tracking
+        this.maxCachedChunks = 10;
         this.searchInput = null;
         this.searchResults = null;
         this.isLoading = false;
         this.debounceTimer = null;
-        this.debounceDelay = 300; // ms
+        this.debounceDelay = 300;
         this.init();
     }
 
@@ -24,15 +28,20 @@ class NGramSearchManager {
         try {
             this.isLoading = true;
             const basePath = window.basePath || './';
-            const indexUrl = `${basePath}static/data/search/index.json`;
-            const response = await fetch(indexUrl);
+            const response = await fetch(`${basePath}static/data/search/index.json`);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP ${response.status}`);
             }
             this.searchIndex = await response.json();
-            console.log('N-gram search index loaded:', this.searchIndex.metadata);
+
+            // Validate required fields
+            if (!this.searchIndex.inverted_index || !this.searchIndex.stage_chunk_map) {
+                throw new Error('Invalid index structure');
+            }
+
+            console.log('Search index loaded:', this.searchIndex.metadata);
         } catch (error) {
-            console.error('Failed to load N-gram search index:', error);
+            console.error('Failed to load search index:', error);
         } finally {
             this.isLoading = false;
         }
@@ -40,19 +49,28 @@ class NGramSearchManager {
 
     async loadChunk(chunkId) {
         if (this.loadedChunks.has(chunkId)) {
+            // Update LRU order
+            this.chunkAccessOrder = this.chunkAccessOrder.filter(id => id !== chunkId);
+            this.chunkAccessOrder.push(chunkId);
             return this.loadedChunks.get(chunkId);
         }
 
         try {
             const basePath = window.basePath || './';
-            const chunkUrl = `${basePath}static/data/search/chunks/chunk_${chunkId}.json`;
-            const response = await fetch(chunkUrl);
+            const response = await fetch(`${basePath}static/data/search/chunks/chunk_${chunkId}.json`);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP ${response.status}`);
             }
             const chunkData = await response.json();
+
+            // Evict oldest if cache is full
+            while (this.loadedChunks.size >= this.maxCachedChunks && this.chunkAccessOrder.length > 0) {
+                const evictId = this.chunkAccessOrder.shift();
+                this.loadedChunks.delete(evictId);
+            }
+
             this.loadedChunks.set(chunkId, chunkData);
-            console.log(`Loaded chunk ${chunkId}: ${chunkData.stages.length} stages`);
+            this.chunkAccessOrder.push(chunkId);
             return chunkData;
         } catch (error) {
             console.error(`Failed to load chunk ${chunkId}:`, error);
@@ -61,21 +79,16 @@ class NGramSearchManager {
     }
 
     setupSearchUI() {
-        // Check if search container already exists
         const existingContainer = document.querySelector('.search-container');
-        if (existingContainer) {
-            console.log('Search container already exists, skipping setup');
-            return;
-        }
+        if (existingContainer) return;
 
-        // Create search container
         const searchContainer = document.createElement('div');
         searchContainer.className = 'search-container';
         searchContainer.innerHTML = `
             <div class="search-input-container">
-                <input type="text" 
-                       class="search-input" 
-                       placeholder="ストーリー内容で全文検索..." 
+                <input type="text"
+                       class="search-input"
+                       placeholder="ストーリー内容で全文検索..."
                        autocomplete="off">
                 <button class="search-clear" style="display: none;">×</button>
             </div>
@@ -83,10 +96,10 @@ class NGramSearchManager {
                 <span class="query-label">検索条件:</span>
                 <span class="query-content"></span>
             </div>
+            <div class="search-loading" style="display: none;">検索中...</div>
             <div class="search-results" style="display: none;"></div>
         `;
 
-        // Insert after content section header or filter container
         const contentSection = document.querySelector('#content');
         if (contentSection) {
             const filterContainer = contentSection.querySelector('.filter-container');
@@ -100,35 +113,25 @@ class NGramSearchManager {
             }
         }
 
-        // Get references (check if they already exist)
         this.searchInput = document.querySelector('.search-input');
         this.searchResults = document.querySelector('.search-results');
         this.searchClear = document.querySelector('.search-clear');
         this.queryDisplay = document.querySelector('.search-query-display');
         this.queryContent = document.querySelector('.query-content');
-
-        // If setupSearchUI was skipped, elements might not be available
-        if (!this.searchInput) {
-            console.warn('Search input not found, search functionality may not work');
-        }
+        this.searchLoading = document.querySelector('.search-loading');
     }
 
     bindEvents() {
         if (!this.searchInput) return;
 
-        // Debounced search input
         this.searchInput.addEventListener('input', (e) => {
             this.debouncedSearch(e.target.value);
         });
 
-        // Clear button
         if (this.searchClear) {
-            this.searchClear.addEventListener('click', () => {
-                this.clearSearch();
-            });
+            this.searchClear.addEventListener('click', () => this.clearSearch());
         }
 
-        // ESC key to clear search
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.searchInput === document.activeElement) {
                 this.clearSearch();
@@ -137,21 +140,13 @@ class NGramSearchManager {
     }
 
     debouncedSearch(query) {
-        // Clear existing timer
-        if (this.debounceTimer) {
-            clearTimeout(this.debounceTimer);
-        }
-
-        // Set new timer
-        this.debounceTimer = setTimeout(() => {
-            this.handleSearch(query);
-        }, this.debounceDelay);
+        if (this.debounceTimer) clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => this.handleSearch(query), this.debounceDelay);
     }
 
     async handleSearch(query) {
         query = query.trim();
 
-        // Show/hide clear button
         if (this.searchClear) {
             this.searchClear.style.display = query ? 'block' : 'none';
         }
@@ -159,148 +154,182 @@ class NGramSearchManager {
         if (query.length < 2) {
             this.hideResults();
             this.hideQueryDisplay();
+            this.hideLoading();
             return;
         }
 
-        // Parse query into keywords for AND search
         const keywords = this.parseQuery(query);
         this.showQueryDisplay(keywords);
 
         if (!this.searchIndex) {
-            this.showResults([{ 
-                type: 'message', 
-                content: this.isLoading ? '検索インデックスを読み込み中...' : '検索インデックスの読み込みに失敗しました' 
+            this.showResults([{
+                type: 'message',
+                content: this.isLoading ? '検索インデックスを読み込み中...' : '検索インデックスの読み込みに失敗しました'
             }]);
             return;
         }
 
+        this.showLoading();
+
         try {
-            const results = await this.performNGramSearch(keywords);
+            const results = await this.performSearch(keywords);
+            this.hideLoading();
             this.showResults(results);
         } catch (error) {
             console.error('Search error:', error);
-            this.showResults([{ 
-                type: 'message', 
-                content: '検索中にエラーが発生しました' 
-            }]);
+            this.hideLoading();
+            this.showResults([{ type: 'message', content: '検索中にエラーが発生しました' }]);
         }
     }
 
     parseQuery(queryString) {
-        return queryString.split(/[\s　]+/).filter(keyword => keyword.trim().length > 0);
+        return queryString.split(/[\s\u3000]+/).filter(kw => kw.length > 0);
     }
 
-    generateNGrams(text, sizes = [2, 3]) {
-        const ngrams = new Set();
-        
-        for (const size of sizes) {
-            for (let i = 0; i <= text.length - size; i++) {
-                ngrams.add(text.substring(i, i + size));
-            }
+    /**
+     * Generate bi-grams from text.
+     */
+    generateBigrams(text) {
+        const lower = text.toLowerCase();
+        const bigrams = new Set();
+        for (let i = 0; i < lower.length - 1; i++) {
+            const bg = lower.substring(i, i + 2);
+            if (bg.trim()) bigrams.add(bg);
         }
-        
-        return Array.from(ngrams);
+        return bigrams;
     }
 
-    async performNGramSearch(keywords) {
-        const candidateChunks = new Set();
-        const candidateStages = new Set();
+    /**
+     * Two-stage search:
+     *  1. Bi-gram index lookup → candidate stages (intersection for AND)
+     *  2. Load chunks → full-text verify with String.includes()
+     */
+    async performSearch(keywords) {
+        const index = this.searchIndex;
 
-        // Generate N-grams for each keyword and find candidate chunks
+        // Stage 1: For each keyword, find candidate stage IDs via bi-gram index
+        let candidateSets = [];
+
         for (const keyword of keywords) {
-            const ngrams = this.generateNGrams(keyword, this.searchIndex.metadata.ngram_config.sizes);
-            
-            for (const ngram of ngrams) {
-                const entries = this.searchIndex.inverted_index[ngram];
-                if (entries) {
-                    for (const entry of entries) {
-                        candidateChunks.add(entry.chunk);
-                        for (const stage of entry.stages) {
-                            candidateStages.add(stage);
-                        }
+            const bigrams = this.generateBigrams(keyword);
+            if (bigrams.size === 0) continue;
+
+            // For this keyword, a stage must appear in ALL its bi-grams
+            let keywordCandidates = null;
+
+            for (const bg of bigrams) {
+                const entries = index.inverted_index[bg];
+                if (!entries) {
+                    // This bi-gram not in index → no results for this keyword
+                    keywordCandidates = new Set();
+                    break;
+                }
+
+                const stagesForBigram = new Set();
+                for (const entry of entries) {
+                    for (const stageId of entry.stages) {
+                        stagesForBigram.add(stageId);
                     }
                 }
-            }
-        }
 
-        console.log(`Found ${candidateChunks.size} candidate chunks, ${candidateStages.size} candidate stages`);
-
-        if (candidateChunks.size === 0) {
-            return [];
-        }
-
-        // Load necessary chunks
-        const loadPromises = Array.from(candidateChunks).map(chunkId => this.loadChunk(chunkId));
-        const chunks = await Promise.all(loadPromises);
-
-        // Search within loaded chunks
-        const results = [];
-        
-        for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            if (!chunk) continue;
-
-            for (const stage of chunk.stages) {
-                if (!candidateStages.has(stage.stage_code)) continue;
-
-                // Check if all keywords match in the stage content
-                if (this.matchesAllKeywords(stage.content, keywords)) {
-                    // Calculate relevance score
-                    const relevance = this.calculateRelevanceForKeywords(stage.content, keywords);
-                    
-                    results.push({
-                        type: 'story',
-                        stage_code: stage.stage_code,
-                        name: stage.title || stage.stage_code,
-                        event_name: stage.event_name,
-                        url: stage.url,
-                        content: stage.content,
-                        relevance: relevance,
-                        chunk_id: Array.from(candidateChunks)[i]
-                    });
+                if (keywordCandidates === null) {
+                    keywordCandidates = stagesForBigram;
+                } else {
+                    // Intersect
+                    keywordCandidates = new Set([...keywordCandidates].filter(s => stagesForBigram.has(s)));
                 }
+
+                if (keywordCandidates.size === 0) break;
+            }
+
+            candidateSets.push(keywordCandidates || new Set());
+        }
+
+        if (candidateSets.length === 0) return [];
+
+        // AND across keywords: intersect all candidate sets
+        let finalCandidates = candidateSets[0];
+        for (let i = 1; i < candidateSets.length; i++) {
+            finalCandidates = new Set([...finalCandidates].filter(s => candidateSets[i].has(s)));
+        }
+
+        if (finalCandidates.size === 0) return [];
+
+        // Determine which chunks to load
+        const neededChunks = new Set();
+        for (const stageId of finalCandidates) {
+            const chunkId = index.stage_chunk_map[stageId];
+            if (chunkId !== undefined) neededChunks.add(chunkId);
+        }
+
+        // Load chunks in parallel
+        const chunks = await Promise.all(
+            [...neededChunks].map(cid => this.loadChunk(cid))
+        );
+
+        // Stage 2: Full-text verification
+        const results = [];
+
+        for (const chunk of chunks) {
+            if (!chunk) continue;
+            for (const stage of chunk.stages) {
+                if (!finalCandidates.has(stage.stage_id)) continue;
+
+                const text = stage.full_content || '';
+                const lowerText = text.toLowerCase();
+
+                // Verify ALL keywords actually appear in full text
+                const allMatch = keywords.every(kw => lowerText.includes(kw.toLowerCase()));
+                if (!allMatch) continue;
+
+                const relevance = this.calculateRelevance(stage, keywords);
+                results.push({
+                    type: 'story',
+                    stage_id: stage.stage_id,
+                    stage_name: stage.stage_name,
+                    event_name: stage.event_name,
+                    url: stage.url,
+                    full_content: text,
+                    relevance: relevance,
+                });
             }
         }
 
-        // Sort by relevance (higher is better)
         results.sort((a, b) => b.relevance - a.relevance);
-
-        return results.slice(0, 20); // Limit to 20 results
+        return results.slice(0, 20);
     }
 
-    matchesAllKeywords(text, keywords) {
-        const lowerText = text.toLowerCase();
-        return keywords.every(keyword => lowerText.includes(keyword.toLowerCase()));
-    }
-
-    calculateRelevanceForKeywords(text, keywords) {
-        const lowerText = text.toLowerCase();
+    /**
+     * Simple relevance scoring: occurrence count + title/meta bonuses,
+     * normalized by text length.
+     */
+    calculateRelevance(stage, keywords) {
         let score = 0;
-        
-        keywords.forEach(keyword => {
-            const lowerKeyword = keyword.toLowerCase();
-            
-            // Exact match gets highest score
-            if (lowerText.includes(lowerKeyword)) {
-                score += 10;
-            }
-            
-            // Count occurrences
-            const occurrences = (lowerText.match(new RegExp(lowerKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
-            score += occurrences * 2;
-            
-            // Boost if keyword appears at the beginning
-            if (lowerText.startsWith(lowerKeyword)) {
-                score += 5;
-            }
+        const content = (stage.full_content || '').toLowerCase();
+        const contentLen = content.length || 1;
+        const title = (stage.stage_name || '').toLowerCase();
+        const eventName = (stage.event_name || '').toLowerCase();
 
-            // N-gram matching bonus for partial matches
-            const textNgrams = this.generateNGrams(lowerText);
-            const keywordNgrams = this.generateNGrams(lowerKeyword);
-            const matchingNgrams = keywordNgrams.filter(ngram => textNgrams.includes(ngram));
-            score += matchingNgrams.length * 0.5;
-        });
-        
+        for (const keyword of keywords) {
+            const kw = keyword.toLowerCase();
+
+            // Count occurrences in content
+            let count = 0;
+            let pos = 0;
+            while ((pos = content.indexOf(kw, pos)) !== -1) {
+                count++;
+                pos += kw.length;
+            }
+            // Normalize by text length (per 1000 chars)
+            score += (count / contentLen) * 1000 * 5;
+
+            // Bonus for title match
+            if (title.includes(kw)) score += 20;
+
+            // Bonus for event name match
+            if (eventName.includes(kw)) score += 10;
+        }
+
         return score;
     }
 
@@ -310,97 +339,82 @@ class NGramSearchManager {
         if (results.length === 0) {
             this.searchResults.innerHTML = '<div class="search-no-results">検索結果が見つかりませんでした</div>';
         } else {
+            const keywords = this.parseQuery(this.searchInput.value);
             const html = results.map(result => {
                 if (result.type === 'message') {
                     return `<div class="search-message">${result.content}</div>`;
-                } else if (result.type === 'story') {
-                    const keywords = this.parseQuery(this.searchInput.value);
-                    const snippet = this.extractSnippet(result.content, keywords, 150);
-                    
-                    return `
-                        <div class="search-result search-story">
-                            <a href="${result.url}">
-                                <div class="search-title">${this.highlightMatches(result.name, keywords)}</div>
-                                <div class="search-meta">ストーリー • ${result.event_name} • ${result.stage_code}</div>
-                                <div class="search-snippet">${this.highlightMatches(snippet, keywords)}</div>
-                                <div class="search-relevance">関連度: ${Math.round(result.relevance)}</div>
-                            </a>
-                        </div>
-                    `;
                 }
-                return '';
+                const snippet = this.extractSnippet(result.full_content, keywords, 150);
+                return `
+                    <div class="search-result search-story">
+                        <a href="${result.url}">
+                            <div class="search-title">${this.highlightMatches(result.stage_name || result.stage_id, keywords)}</div>
+                            <div class="search-meta">ストーリー • ${this.escapeHtml(result.event_name)} • ${this.escapeHtml(result.stage_id)}</div>
+                            <div class="search-snippet">${this.highlightMatches(snippet, keywords)}</div>
+                        </a>
+                    </div>
+                `;
             }).join('');
-
             this.searchResults.innerHTML = html;
         }
 
         this.searchResults.style.display = 'block';
     }
 
-    extractSnippet(text, keywords, maxLength = 150) {
-        // Find the best snippet containing the most keywords
+    extractSnippet(text, keywords, maxLength) {
+        if (!text) return '';
+
         let bestSnippet = '';
-        let bestScore = 0;
-        
-        // Try different starting positions around keyword matches
+        let bestScore = -1;
+
         for (const keyword of keywords) {
-            const lowerText = text.toLowerCase();
-            const lowerKeyword = keyword.toLowerCase();
-            const index = lowerText.indexOf(lowerKeyword);
-            
-            if (index !== -1) {
-                // Extract snippet around the keyword
-                const start = Math.max(0, index - Math.floor(maxLength / 2));
-                const end = Math.min(text.length, start + maxLength);
-                const snippet = text.substring(start, end);
-                
-                // Score this snippet based on keyword occurrences
-                const score = keywords.reduce((acc, kw) => {
-                    return acc + (snippet.toLowerCase().match(new RegExp(kw.toLowerCase(), 'g')) || []).length;
-                }, 0);
-                
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestSnippet = snippet;
-                }
+            const idx = text.toLowerCase().indexOf(keyword.toLowerCase());
+            if (idx === -1) continue;
+
+            const start = Math.max(0, idx - Math.floor(maxLength / 3));
+            const end = Math.min(text.length, start + maxLength);
+            const snippet = text.substring(start, end);
+
+            const score = keywords.reduce((acc, kw) => {
+                return acc + (snippet.toLowerCase().includes(kw.toLowerCase()) ? 1 : 0);
+            }, 0);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestSnippet = snippet;
             }
         }
-        
-        // Fallback to beginning of text if no keywords found
-        if (!bestSnippet) {
-            bestSnippet = text.substring(0, maxLength);
-        }
-        
-        // Add ellipsis if truncated
-        if (bestSnippet.length === maxLength && text.length > maxLength) {
-            bestSnippet += '...';
-        }
-        
-        return bestSnippet;
+
+        if (!bestSnippet) bestSnippet = text.substring(0, maxLength);
+
+        const prefix = bestSnippet !== text.substring(0, bestSnippet.length) ? '...' : '';
+        const suffix = bestSnippet.length < text.length ? '...' : '';
+        return prefix + bestSnippet + suffix;
     }
 
     showQueryDisplay(keywords) {
         if (!this.queryDisplay || !this.queryContent || keywords.length === 0) return;
-        
-        // Build query display with CSS-styled keywords and operators
-        const queryHtml = keywords.map(keyword => 
-            `<span class="search-keyword">${this.escapeHtml(keyword)}</span>`
+        const html = keywords.map(kw =>
+            `<span class="search-keyword">${this.escapeHtml(kw)}</span>`
         ).join(' <span class="search-operator">AND</span> ');
-        
-        this.queryContent.innerHTML = queryHtml;
+        this.queryContent.innerHTML = html;
         this.queryDisplay.style.display = 'block';
     }
 
     hideQueryDisplay() {
-        if (this.queryDisplay) {
-            this.queryDisplay.style.display = 'none';
-        }
+        if (this.queryDisplay) this.queryDisplay.style.display = 'none';
     }
 
     hideResults() {
-        if (this.searchResults) {
-            this.searchResults.style.display = 'none';
-        }
+        if (this.searchResults) this.searchResults.style.display = 'none';
+    }
+
+    showLoading() {
+        if (this.searchLoading) this.searchLoading.style.display = 'block';
+    }
+
+    hideLoading() {
+        if (this.searchLoading) this.searchLoading.style.display = 'none';
     }
 
     clearSearch() {
@@ -408,40 +422,34 @@ class NGramSearchManager {
             this.searchInput.value = '';
             this.searchInput.focus();
         }
-        if (this.searchClear) {
-            this.searchClear.style.display = 'none';
-        }
+        if (this.searchClear) this.searchClear.style.display = 'none';
         this.hideResults();
         this.hideQueryDisplay();
-        
-        // Clear debounce timer
-        if (this.debounceTimer) {
-            clearTimeout(this.debounceTimer);
-        }
+        this.hideLoading();
+        if (this.debounceTimer) clearTimeout(this.debounceTimer);
     }
 
     escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
     highlightMatches(text, keywords) {
-        if (!keywords || keywords.length === 0) return text;
-        
-        let highlightedText = text;
-        keywords.forEach(keyword => {
-            if (keyword.trim()) {
-                const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-                highlightedText = highlightedText.replace(regex, '<mark>$1</mark>');
-            }
-        });
-        
-        return highlightedText;
+        if (!keywords || keywords.length === 0 || !text) return text || '';
+        let result = this.escapeHtml(text);
+        for (const keyword of keywords) {
+            if (!keyword.trim()) continue;
+            const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escaped})`, 'gi');
+            result = result.replace(regex, '<mark>$1</mark>');
+        }
+        return result;
     }
 }
 
-// Initialize N-gram search when DOM is ready
+// Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => new NGramSearchManager());
 } else {

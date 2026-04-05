@@ -42,6 +42,9 @@ build/
 .coverage
 htmlcov/
 
+# Rust build artifacts
+tools/bigram-index/target/
+
 # Project specific
 /data/ArknightsStoryJson/
 

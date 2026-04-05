@@ -9,3 +9,13 @@ dependencies = [
     "watchdog>=3.0.0",
     "beautifulsoup4>=4.12.2",
 ]
+
+[dependency-groups]
+dev = [
+    "playwright>=1.40.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[tool.uv]
+exclude-newer = "2026-03-22T00:00:00Z"
