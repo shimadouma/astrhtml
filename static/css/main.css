@@ -150,10 +150,18 @@ body {
     margin-bottom: 2rem;
 }
 
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 650px;
+    margin: 0 auto;
+}
+
 .search-input-container {
     position: relative;
-    max-width: 600px;
-    margin: 0 auto;
+    flex: 1;
+    min-width: 0;
 }
 
 .search-input {
@@ -193,17 +201,14 @@ body {
 }
 
 .search-help-btn {
-    position: absolute;
-    right: -2.8rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.8rem;
-    height: 1.8rem;
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
     border-radius: 50%;
     border: 1.5px solid var(--border-color);
     background: var(--card-background);
     color: var(--text-color);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: bold;
     cursor: pointer;
     opacity: 0.5;
