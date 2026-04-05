@@ -68,17 +68,13 @@ struct StageOutput {
 }
 
 #[derive(Serialize)]
-struct IndexEntry {
-    chunk: usize,
-    stages: Vec<String>,
-}
-
-#[derive(Serialize)]
 struct IndexOutput {
     metadata: IndexMetadata,
     stage_chunk_map: BTreeMap<String, usize>,
     event_chunk_map: BTreeMap<String, EventChunkInfo>,
-    inverted_index: BTreeMap<String, Vec<IndexEntry>>,
+    /// Chunk-level inverted index: bigram -> sorted list of chunk IDs.
+    /// Stage-level filtering is deferred to the client after chunk loading.
+    inverted_index: BTreeMap<String, Vec<usize>>,
 }
 
 #[derive(Serialize)]
@@ -220,48 +216,34 @@ fn main() {
         }
     }
 
-    // Build inverted index (bi-gram -> chunk -> stage_ids)
-    let mut inverted: HashMap<String, HashMap<usize, Vec<String>>> = HashMap::new();
+    // Build chunk-level inverted index (bi-gram -> set of chunk IDs)
+    let mut inverted: HashMap<String, HashSet<usize>> = HashMap::new();
     let mut total_bigrams: usize = 0;
 
     for (chunk_id, indices) in chunk_indices.iter().enumerate() {
+        // Collect all bigrams from all stages in this chunk
+        let mut chunk_bigrams: HashSet<String> = HashSet::new();
         for &stage_idx in indices {
             let stage = &stages[stage_idx];
             let searchable = format!(
                 "{} {} {} {}",
                 stage.stage_name, stage.event_name, stage.stage_info, stage.full_content
             );
-            let bigrams = generate_bigrams(&searchable);
-            total_bigrams += bigrams.len();
+            chunk_bigrams.extend(generate_bigrams(&searchable));
+        }
+        total_bigrams += chunk_bigrams.len();
 
-            for bg in bigrams {
-                inverted
-                    .entry(bg)
-                    .or_default()
-                    .entry(chunk_id)
-                    .or_default()
-                    .push(stage.stage_id.clone());
-            }
+        for bg in chunk_bigrams {
+            inverted.entry(bg).or_default().insert(chunk_id);
         }
     }
 
     // Convert to sorted output format
-    let mut inverted_index: BTreeMap<String, Vec<IndexEntry>> = BTreeMap::new();
-    for (bigram, chunk_map) in &inverted {
-        let mut entries: Vec<IndexEntry> = chunk_map
-            .iter()
-            .map(|(&chunk, stage_ids)| {
-                let mut unique_stages: Vec<String> = stage_ids.clone();
-                unique_stages.sort();
-                unique_stages.dedup();
-                IndexEntry {
-                    chunk,
-                    stages: unique_stages,
-                }
-            })
-            .collect();
-        entries.sort_by_key(|e| e.chunk);
-        inverted_index.insert(bigram.clone(), entries);
+    let mut inverted_index: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    for (bigram, chunk_ids) in &inverted {
+        let mut sorted_chunks: Vec<usize> = chunk_ids.iter().copied().collect();
+        sorted_chunks.sort();
+        inverted_index.insert(bigram.clone(), sorted_chunks);
     }
 
     let unique_bigrams = inverted_index.len();

@@ -106,11 +106,12 @@ class NGramSearchIndexGenerator(BaseGenerator):
             for stage in chunk_stages:
                 stage_chunk_map[stage["stage_id"]] = chunk_id
 
-        # Build inverted index
-        inverted = defaultdict(lambda: defaultdict(set))
+        # Build chunk-level inverted index (bigram -> set of chunk IDs)
+        inverted = defaultdict(set)
         total_bigrams = 0
 
         for chunk_id, chunk_stages in enumerate(chunks):
+            chunk_bgs = set()
             for stage in chunk_stages:
                 searchable = " ".join([
                     stage.get("stage_name", ""),
@@ -118,18 +119,13 @@ class NGramSearchIndexGenerator(BaseGenerator):
                     stage.get("stage_info", ""),
                     stage.get("full_content", ""),
                 ])
-                bigrams = self._generate_bigrams(searchable)
-                total_bigrams += len(bigrams)
-                for bg in bigrams:
-                    inverted[bg][chunk_id].add(stage["stage_id"])
+                chunk_bgs.update(self._generate_bigrams(searchable))
+            total_bigrams += len(chunk_bgs)
+            for bg in chunk_bgs:
+                inverted[bg].add(chunk_id)
 
-        # Convert to serializable format
-        inverted_index = {}
-        for bigram, chunk_map in sorted(inverted.items()):
-            inverted_index[bigram] = [
-                {"chunk": cid, "stages": sorted(sids)}
-                for cid, sids in sorted(chunk_map.items())
-            ]
+        # Convert to serializable format: bigram -> sorted list of chunk IDs
+        inverted_index = {bg: sorted(cids) for bg, cids in sorted(inverted.items())}
 
         # Build event_chunk_map
         event_chunk_map = defaultdict(lambda: {"chunks": [], "stages": []})

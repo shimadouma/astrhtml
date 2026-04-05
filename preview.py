@@ -10,6 +10,7 @@ import sys
 import webbrowser
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from socketserver import ThreadingMixIn
 
 
 class PreviewHandler(SimpleHTTPRequestHandler):
@@ -156,7 +157,10 @@ def start_server(port=8000, open_browser=True, host='localhost'):
                         # If we can't even send an error, just pass
                         pass
         
-        server = HTTPServer((host, port), RobustPreviewHandler)
+        class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+            daemon_threads = True
+
+        server = ThreadingHTTPServer((host, port), RobustPreviewHandler)
         server_url = f"http://{host}:{port}"
         
         print("🚀 Starting Arknights Story Archive preview server...")

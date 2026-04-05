@@ -201,80 +201,65 @@ class NGramSearchManager {
 
     /**
      * Two-stage search:
-     *  1. Bi-gram index lookup → candidate stages (intersection for AND)
+     *  1. Bi-gram index lookup → candidate chunk IDs (intersection for AND)
      *  2. Load chunks → full-text verify with String.includes()
      */
     async performSearch(keywords) {
         const index = this.searchIndex;
 
-        // Stage 1: For each keyword, find candidate stage IDs via bi-gram index
-        let candidateSets = [];
+        // Stage 1: For each keyword, find candidate chunk IDs via bi-gram index.
+        // Index format: bigram -> [chunk_id, chunk_id, ...]
+        let chunkSets = [];
 
         for (const keyword of keywords) {
             const bigrams = this.generateBigrams(keyword);
             if (bigrams.size === 0) continue;
 
-            // For this keyword, a stage must appear in ALL its bi-grams
-            let keywordCandidates = null;
+            // A chunk must contain ALL bi-grams of this keyword
+            let keywordChunks = null;
 
             for (const bg of bigrams) {
-                const entries = index.inverted_index[bg];
-                if (!entries) {
-                    // This bi-gram not in index → no results for this keyword
-                    keywordCandidates = new Set();
+                const chunkIds = index.inverted_index[bg];
+                if (!chunkIds) {
+                    keywordChunks = new Set();
                     break;
                 }
 
-                const stagesForBigram = new Set();
-                for (const entry of entries) {
-                    for (const stageId of entry.stages) {
-                        stagesForBigram.add(stageId);
-                    }
-                }
+                const chunkSet = new Set(chunkIds);
 
-                if (keywordCandidates === null) {
-                    keywordCandidates = stagesForBigram;
+                if (keywordChunks === null) {
+                    keywordChunks = chunkSet;
                 } else {
-                    // Intersect
-                    keywordCandidates = new Set([...keywordCandidates].filter(s => stagesForBigram.has(s)));
+                    keywordChunks = new Set([...keywordChunks].filter(c => chunkSet.has(c)));
                 }
 
-                if (keywordCandidates.size === 0) break;
+                if (keywordChunks.size === 0) break;
             }
 
-            candidateSets.push(keywordCandidates || new Set());
+            chunkSets.push(keywordChunks || new Set());
         }
 
-        if (candidateSets.length === 0) return [];
+        if (chunkSets.length === 0) return [];
 
-        // AND across keywords: intersect all candidate sets
-        let finalCandidates = candidateSets[0];
-        for (let i = 1; i < candidateSets.length; i++) {
-            finalCandidates = new Set([...finalCandidates].filter(s => candidateSets[i].has(s)));
+        // AND across keywords: intersect chunk sets
+        let neededChunks = chunkSets[0];
+        for (let i = 1; i < chunkSets.length; i++) {
+            neededChunks = new Set([...neededChunks].filter(c => chunkSets[i].has(c)));
         }
 
-        if (finalCandidates.size === 0) return [];
+        if (neededChunks.size === 0) return [];
 
-        // Determine which chunks to load
-        const neededChunks = new Set();
-        for (const stageId of finalCandidates) {
-            const chunkId = index.stage_chunk_map[stageId];
-            if (chunkId !== undefined) neededChunks.add(chunkId);
-        }
-
-        // Load chunks in parallel
+        // Load candidate chunks in parallel
         const chunks = await Promise.all(
             [...neededChunks].map(cid => this.loadChunk(cid))
         );
 
-        // Stage 2: Full-text verification
+        // Stage 2: Full-text verification on all stages in loaded chunks
         const results = [];
 
         for (const chunk of chunks) {
             if (!chunk) continue;
             for (const stage of chunk.stages) {
-                if (!finalCandidates.has(stage.stage_id)) continue;
-
                 const text = stage.full_content || '';
                 const lowerText = text.toLowerCase();
 
