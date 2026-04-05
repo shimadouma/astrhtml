@@ -85,14 +85,12 @@ class NGramSearchManager {
         const searchContainer = document.createElement('div');
         searchContainer.className = 'search-container';
         searchContainer.innerHTML = `
-            <div class="search-input-wrapper">
-                <div class="search-input-container">
-                    <input type="text"
-                           class="search-input"
-                           placeholder="ストーリー内容で全文検索..."
-                           autocomplete="off">
-                    <button class="search-clear" style="display: none;">×</button>
-                </div>
+            <div class="search-input-container">
+                <input type="text"
+                       class="search-input"
+                       placeholder="ストーリー内容で全文検索..."
+                       autocomplete="off">
+                <button class="search-clear" style="display: none;">×</button>
                 <button class="search-help-btn" title="検索ヒント">?</button>
             </div>
             <div class="search-help-panel" style="display: none;">

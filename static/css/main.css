@@ -150,24 +150,15 @@ body {
     margin-bottom: 2rem;
 }
 
-.search-input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    max-width: 650px;
-    margin: 0 auto;
-}
-
 .search-input-container {
     position: relative;
-    flex: 1;
-    min-width: 0;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .search-input {
     width: 100%;
-    padding: 1rem;
-    padding-right: 3rem;
+    padding: 1rem 5.5rem 1rem 1rem;
     border: 2px solid var(--border-color);
     border-radius: 25px;
     font-size: 1rem;
@@ -184,7 +175,7 @@ body {
 
 .search-clear {
     position: absolute;
-    right: 1rem;
+    right: 3.2rem;
     top: 50%;
     transform: translateY(-50%);
     background: none;
@@ -201,28 +192,37 @@ body {
 }
 
 .search-help-btn {
-    flex-shrink: 0;
-    width: 2rem;
-    height: 2rem;
+    position: absolute;
+    right: 0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.2rem;
+    height: 2.2rem;
     border-radius: 50%;
-    border: 1.5px solid var(--border-color);
-    background: var(--card-background);
+    border: 2px solid var(--border-color);
+    background: var(--background-color);
     color: var(--text-color);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: bold;
     cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.3s, border-color 0.3s;
+    opacity: 0.6;
+    transition: opacity 0.3s, border-color 0.3s, background-color 0.3s;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
 }
 
-.search-help-btn:hover,
+.search-help-btn:hover {
+    opacity: 1;
+    border-color: var(--secondary-color);
+}
+
 .search-help-btn.active {
     opacity: 1;
     border-color: var(--secondary-color);
+    background-color: var(--secondary-color);
+    color: #fff;
 }
 
 .search-help-panel {
