@@ -4,7 +4,7 @@
 
 class ThemeManager {
     constructor() {
-        this.currentTheme = localStorage.getItem('theme') || 'light';
+        this.currentTheme = localStorage.getItem('theme') || 'dark';
         this.toggleButton = null;
         this.init();
     }
@@ -46,7 +46,7 @@ class ThemeManager {
 
     updateToggleText() {
         if (this.toggleButton) {
-            this.toggleButton.textContent = this.currentTheme === 'light' ? '🌙 ダークモード' : '☀️ ライトモード';
+            this.toggleButton.textContent = this.currentTheme === 'light' ? 'ダークモード' : 'ライトモード';
             this.toggleButton.setAttribute('aria-label', 
                 this.currentTheme === 'light' ? 'ダークモードに切り替え' : 'ライトモードに切り替え'
             );

@@ -47,7 +47,7 @@ class FontManager {
     updateToggleText() {
         if (this.toggleButton) {
             const isSerif = this.currentFont === 'serif';
-            this.toggleButton.textContent = isSerif ? 'あ ゴシック体' : 'あ 明朝体';
+            this.toggleButton.textContent = isSerif ? 'ゴシック体' : '明朝体';
             this.toggleButton.setAttribute('aria-label', 
                 isSerif ? 'ゴシック体フォントに切り替え' : '明朝体フォントに切り替え'
             );
