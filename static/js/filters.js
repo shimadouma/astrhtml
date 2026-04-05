@@ -128,8 +128,8 @@ class FilterManager {
             if (this.activeFilters.type === 'main_story') {
                 filteredCards = filteredCards.filter(card => card.type === 'main_story');
             } else {
-                filteredCards = filteredCards.filter(card => 
-                    card.type !== 'main_story' && card.subtitle === this.activeFilters.type
+                filteredCards = filteredCards.filter(card =>
+                    card.type !== 'main_story' && (card.display_type || card.subtitle) === this.activeFilters.type
                 );
             }
         }

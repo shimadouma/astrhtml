@@ -11,7 +11,7 @@ from src.config import (
     INCLUDE_REPLICATE_EVENTS, INCLUDE_MAIN_STORY_BY_DEFAULT
 )
 from src.models.event import Event
-from src.lib.event_parser import get_events_with_stories, sort_events_by_date
+from src.lib.event_parser import get_events_with_stories, sort_events_by_date, parse_activities, check_unclassified_side_events
 from src.lib.story_parser import parse_event_stories, create_stories_from_files
 from src.lib.zone_parser import load_zone_table, get_available_main_chapters, get_ordered_main_zones
 from src.lib.main_story_parser import (
@@ -260,6 +260,20 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
         except Exception as e:
             print(f"Warning: Link check failed with error: {e}")
     
+    # Check for unclassified SIDE events
+    if not main_only:
+        activities = parse_activities(DATA_PATH)
+        unclassified_warnings = check_unclassified_side_events(activities)
+        if unclassified_warnings:
+            print("\n" + "⚠" * 25)
+            print("WARNING: Unclassified SIDE-type events detected!")
+            print("The following events have displayType=NONE with SIDE in their type,")
+            print("but could not be classified as SIDESTORY or COLLAB:")
+            for w in unclassified_warnings:
+                print(w)
+            print("Please update the classification rules in src/models/activity.py")
+            print("⚠" * 25)
+
     print("\n" + "=" * 50)
     print("Build complete!")
     print(f"Output directory: {DIST_PATH}")

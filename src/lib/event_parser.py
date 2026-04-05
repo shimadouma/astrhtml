@@ -11,16 +11,16 @@ from .stage_parser import load_stage_table, get_story_order_for_event, get_stage
 def parse_activities(base_path: Path) -> Dict[str, ActivityInfo]:
     """
     Parse all activities from activity_table.json.
-    
+
     Args:
         base_path: Base path to ArknightsStoryJson data
-        
+
     Returns:
         Dictionary of activity_id -> ActivityInfo
     """
     activities_data = load_activity_table(base_path)
     activities = {}
-    
+
     for activity_id, activity_data in activities_data.items():
         try:
             activity = ActivityInfo.from_dict(activity_data)
@@ -28,8 +28,24 @@ def parse_activities(base_path: Path) -> Dict[str, ActivityInfo]:
         except (KeyError, TypeError) as e:
             print(f"Error parsing activity {activity_id}: {e}")
             continue
-    
+
     return activities
+
+
+def check_unclassified_side_events(activities: Dict[str, ActivityInfo]) -> List[str]:
+    """Check for SIDE-type events that could not be classified as SIDESTORY or COLLAB.
+
+    Returns a list of warning messages for events still marked NONE.
+    """
+    warnings = []
+    for activity_id, activity in activities.items():
+        if activity.display_type == 'NONE' and 'SIDE' in activity.type and activity.has_stage:
+            warnings.append(
+                f"  {activity_id}: \"{activity.name}\" "
+                f"(type={activity.type}, medalGroupId={'yes' if activity.medal_group_id else 'no'}, "
+                f"duration={activity.duration_days:.1f}d)"
+            )
+    return warnings
 
 
 def get_events_with_stories(base_path: Path) -> List[Event]:
