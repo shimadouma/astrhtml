@@ -112,7 +112,7 @@ uv sync --group dev
 uv run playwright install chromium
 
 # Build the site, then run tests
-uv run python build.py --limit 3 --no-check-links
+uv run python build.py --limit 10 --no-check-links
 uv run pytest tests/e2e/test_search.py -v
 ```
 
