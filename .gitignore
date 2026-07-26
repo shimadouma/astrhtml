@@ -48,6 +48,10 @@ tools/bigram-index/target/
 # Project specific
 /data/ArknightsStoryJson/
 
+# AI commentary intermediates (regenerable via scripts/extract_story_text.py).
+# Note: content/commentary/ is intentionally NOT ignored — it is hand-committed.
+/build/ai_input/
+
 # Serena MCP
 .serena/
 .claude/settings.local.json

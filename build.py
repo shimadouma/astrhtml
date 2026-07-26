@@ -8,7 +8,8 @@ from pathlib import Path
 from src.config import (
     DATA_PATH, DIST_PATH, STATIC_PATH,
     CLEAN_BUILD, COPY_STATIC, SORT_EVENTS_BY_DATE,
-    INCLUDE_REPLICATE_EVENTS, INCLUDE_MAIN_STORY_BY_DEFAULT
+    INCLUDE_REPLICATE_EVENTS, INCLUDE_MAIN_STORY_BY_DEFAULT,
+    INCLUDE_COMMENTARY
 )
 from src.models.event import Event
 from src.lib.event_parser import get_events_with_stories, sort_events_by_date, parse_activities, check_unclassified_side_events
@@ -25,13 +26,15 @@ from src.generators.main_story_generator import MainStoryGenerator
 from src.generators.search_index import SearchIndexGenerator
 from src.generators.ngram_search_index import NGramSearchIndexGenerator, NGramConfig, run_performance_tuning
 from src.generators.bookmark_generator import BookmarkGenerator
+from src.generators.commentary_generator import CommentaryGenerator
 from src.utils.file_utils import clean_directory, copy_static_files
 
 
 def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = None,
                include_main: bool = INCLUDE_MAIN_STORY_BY_DEFAULT, main_only: bool = False, 
-               main_chapters: list = None, check_links: bool = True, use_ngram: bool = True, 
-               ngram_config: NGramConfig = None, ngram_tuning: bool = False):
+               main_chapters: list = None, check_links: bool = True, use_ngram: bool = True,
+               ngram_config: NGramConfig = None, ngram_tuning: bool = False,
+               include_commentary: bool = INCLUDE_COMMENTARY):
     """
     Build the entire site.
     
@@ -46,6 +49,7 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
         use_ngram: Whether to use N-gram search index (default: True)
         ngram_config: N-gram configuration parameters
         ngram_tuning: Whether to run performance tuning with multiple configs
+        include_commentary: Whether to render AI commentary pages when data exists
     """
     print("=" * 50)
     print("Arknights Story HTML Builder")
@@ -143,6 +147,7 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
     main_story_gen = MainStoryGenerator()
     search_gen = SearchIndexGenerator()
     bookmark_gen = BookmarkGenerator(output_dir=DIST_PATH)
+    commentary_gen = CommentaryGenerator()
     
     # Parse main story chapters into Event wrappers for search indexing
     main_story_events = []
@@ -201,6 +206,7 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
     bookmark_gen.generate_bookmarks_page()
 
     # Generate event and story pages
+    commentary_count = 0
     if events:
         for i, event in enumerate(events, 1):
             print(f"[{i}/{len(events)}] Generating pages for {event.event_name}")
@@ -211,6 +217,13 @@ def build_site(clean: bool = CLEAN_BUILD, limit: int = None, event_id: str = Non
             # Generate story pages
             if event.stories:
                 story_gen.generate(event, DIST_PATH)
+
+            # Generate AI commentary page if commentary data is committed
+            if include_commentary and commentary_gen.generate(event, DIST_PATH):
+                commentary_count += 1
+
+        if include_commentary:
+            print(f"Generated {commentary_count} AI commentary page(s)")
 
     # Generate main story pages
     if main_story_activities:
@@ -346,6 +359,11 @@ def main():
         action='store_true',
         help='Enable debug output for N-gram generation'
     )
+    parser.add_argument(
+        '--no-commentary',
+        action='store_true',
+        help='Skip AI commentary page generation'
+    )
     
     args = parser.parse_args()
     
@@ -384,7 +402,8 @@ def main():
             check_links=check_links,
             use_ngram=use_ngram,
             ngram_config=ngram_config,
-            ngram_tuning=args.ngram_tuning
+            ngram_tuning=args.ngram_tuning,
+            include_commentary=not args.no_commentary
         )
     except Exception as e:
         print(f"Error during build: {e}", file=sys.stderr)

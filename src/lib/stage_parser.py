@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
+from functools import lru_cache
 import json
 import re
 from pathlib import Path
@@ -22,8 +23,14 @@ class StageInfo:
     zone_id: str
     level_id: Optional[str] = None
 
+@lru_cache(maxsize=None)
 def load_stage_table(data_path: Path) -> Dict[str, StageInfo]:
-    """Load stage_table.json and return dictionary of StageInfo objects"""
+    """Load stage_table.json and return dictionary of StageInfo objects
+
+    Cached: stage_table.json is over 20 MB and is re-read once per event by
+    get_ordered_stories_for_event. The file does not change during a build.
+    Callers must treat the returned dict as read-only.
+    """
     stage_table_path = data_path / "gamedata" / "excel" / "stage_table.json"
     data = load_json(stage_table_path)
     if not data:

@@ -2,6 +2,44 @@
 
 This file contains completed features and improvements from TODO.md
 
+## AI解説ページ (Completed: 2026-07-26)
+- [x] 共通のストーリーテキスト抽出モジュール
+  - [x] `src/lib/story_text.py` - 検索インデックスとAI解説入力で共用（検索インデックス出力はバイト単位で同一を確認）
+  - [x] `src/generators/ngram_search_index.py` を共通モジュール利用にリファクタ
+- [x] AI解説の入力生成
+  - [x] `scripts/extract_story_text.py` - イベント本文をゲーム内順序のMarkdownに変換
+  - [x] 戦闘前/戦闘後が同一本文の場合は重複を省略（act49sideで189K→106K文字）
+- [x] データ層
+  - [x] `src/lib/commentary_paths.py` - stage_ref → 生成ページ名の対応（抽出側と描画側で共用）
+  - [x] `src/lib/commentary_parser.py` - 解説JSONの読み込み（未生成イベントは正常系として扱う）
+  - [x] `scripts/validate_commentary.py` - スキーマとstage_refの検証（CIに組み込み）
+  - [x] `scripts/list_missing_commentary.py` - 未生成イベントの一覧
+- [x] 生成スキル
+  - [x] `.claude/skills/ai-commentary/SKILL.md` - スラッシュコマンドではなくスキルとして実装
+  - [x] `.claude/skills/ai-commentary/reference/schema.md` - スキーマ仕様を分離
+- [x] HTML生成
+  - [x] `src/generators/commentary_generator.py` - 解説ページ生成
+  - [x] `templates/commentary.html` - 4セクション + 目次 + ネタバレ/AI生成の注意書き
+  - [x] `static/css/commentary.css` - 既存デザイントークンに準拠
+  - [x] `templates/event.html` - ストーリー一覧末尾に「AI解説」リンクを追加
+  - [x] `build.py` - 解説生成の統合と `--no-commentary` フラグ
+- [x] CI/ドキュメント
+  - [x] `.github/workflows/deploy.yml` - ビルド前に解説データを検証
+  - [x] `docs/ai_commentary_workflow.md` - 運用手順書
+  - [x] `CLAUDE.md` - 設計方針と不変条件を記載
+- [x] act49side（辞歳行）で実際に生成しテスト
+  - [x] stage_refリンク99件すべてが実在ページに解決（未解決0件・破損0件）
+  - [x] リンクチェック・イベント検証・E2Eテスト21件すべて通過
+- [x] レビュー指摘の反映
+  - [x] `load_stage_table` に `lru_cache` を追加（20MB超のJSONをイベント毎に再パースしていた）
+        20イベントビルドで 7.4秒 → 4.6秒
+  - [x] `load_commentary` に `lru_cache` を追加（イベント毎に2回読まれていた）
+  - [x] セクション見出しを `SECTION_LABELS` の単一定義に統合（3箇所に重複していた）
+  - [x] 未使用コード削除（`CommentaryGenerator.has_commentary`、`get_commentary_path`、
+        `extract_transcript` の未使用引数、`_format_stage_direction`）
+  - [x] stage_refが解決できない場合にビルド警告を出力（従来は無警告で劣化していた）
+  - [x] `commentary.css` を解説があるイベントページのみで読み込むよう変更
+
 ## プロジェクト初期セットアップ (Completed: 2024)
 - [x] プロジェクトの基本構造を作成
   - [x] requirements.txtの作成（Python依存パッケージ）

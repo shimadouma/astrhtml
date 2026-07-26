@@ -15,6 +15,7 @@ from typing import List, Dict, Any, Set
 
 from .base_generator import BaseGenerator
 from ..models.event import Event
+from ..lib.story_text import extract_plain_text, extract_speakers
 from ..config import DIST_PATH
 
 
@@ -196,9 +197,9 @@ class NGramSearchIndexGenerator(BaseGenerator):
                 all_speakers: Set[str] = set()
 
                 for story in story_list:
-                    story_content = self._extract_story_content(story)
+                    story_content = extract_plain_text(story)
                     full_content.append(story_content)
-                    all_speakers.update(self._extract_speakers(story))
+                    all_speakers.update(extract_speakers(story))
 
                 combined_content = " ".join(full_content)
                 story_stem = Path(story_list[0].story_code).stem if story_list[0].story_code else "story"
@@ -230,28 +231,6 @@ class NGramSearchIndexGenerator(BaseGenerator):
         if not story_code:
             return "unknown"
         return Path(story_code).stem
-
-    def _extract_story_content(self, story) -> str:
-        text_parts = []
-        for element in story.story_list:
-            prop = element.prop.lower()
-            if prop in ("name", "dialog"):
-                content = element.get_text()
-                if content:
-                    text_parts.append(content)
-            elif prop == "subtitle":
-                subtitle = element.attributes.get("text")
-                if subtitle:
-                    text_parts.append(subtitle)
-        return " ".join(text_parts)
-
-    def _extract_speakers(self, story) -> Set[str]:
-        speakers = set()
-        for element in story.story_list:
-            speaker = element.get_speaker()
-            if speaker:
-                speakers.add(speaker)
-        return speakers
 
     def _determine_stage_type(self, stage_id: str) -> str:
         if "-ST-" in stage_id:

@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+{% if has_commentary %}
+<link rel="stylesheet" href="{{ css_path }}commentary.css">
+{% endif %}
+{% endblock %}
+
 {% block title %}{{ event.event_name }} - アークナイツ ストーリーアーカイブ{% endblock %}
 
 {% block content %}
@@ -76,6 +82,24 @@
             </div>
         </article>
         {% endfor %}
+
+        {% if has_commentary %}
+        <article class="story-item story-item-commentary">
+            <div class="story-header">
+                <h4 class="story-title">
+                    <a href="commentary.html">AI解説 — あらすじ・判明した事実・用語集</a>
+                </h4>
+                <div class="story-meta">
+                    <span class="commentary-badge">AI生成</span>
+                    <span class="commentary-spoiler-badge">ネタバレ</span>
+                </div>
+            </div>
+
+            <div class="story-footer">
+                <a href="commentary.html" class="btn btn-secondary">解説を読む</a>
+            </div>
+        </article>
+        {% endif %}
     </div>
 </section>
 

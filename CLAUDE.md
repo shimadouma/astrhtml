@@ -161,6 +161,111 @@ uv run python scripts/check_links.py --fail-on-broken
 - Fix any broken links immediately
 - Never deploy with broken links
 
+## AI Commentary Pages (AI解説)
+
+Each event can have an "AI解説" page summarizing what happened, what was revealed,
+what remains unresolved, and a glossary of terms. This helps readers who have
+finished a story make sense of Arknights' often indirect phrasing.
+
+### Design: generation and rendering are separate
+
+Commentary is generated **manually on a developer machine** using Claude Code, and
+committed as **data**. CI only renders it to HTML. This means template and CSS
+changes never require regenerating commentary, and the text is reviewable in
+`git diff` as prose rather than markup.
+
+```
+data/ArknightsStoryJson/  →  scripts/extract_story_text.py  →  build/ai_input/{event_id}.md   (gitignored)
+                                                                        ↓
+                                       /ai-commentary skill (manual, local)
+                                                                        ↓
+                                             content/commentary/{event_id}.json  (COMMITTED)
+                                                                        ↓
+                                                    build.py (CI)  →  dist/events/{event_id}/commentary.html
+```
+
+**Key rule**: `content/commentary/` is hand-committed and must never be gitignored.
+`build/ai_input/` is a regenerable intermediate and is always gitignored.
+
+### Generating commentary for an event
+
+```bash
+# 1. Generate the commentary data (invokes the skill; reads the story and writes JSON)
+/ai-commentary act49side
+
+# 2. Validate it (also runs in CI)
+uv run python scripts/validate_commentary.py --event act49side
+
+# 3. Render and review locally
+uv run python build.py --event act49side
+uv run python preview.py
+
+# 4. Commit content/commentary/act49side.json
+```
+
+Supporting commands:
+
+```bash
+# Which events still need commentary?
+uv run python scripts/list_missing_commentary.py
+
+# Which events already have it?
+uv run python scripts/list_missing_commentary.py --covered
+
+# Extract the transcript by hand (the skill does this for you)
+uv run python scripts/extract_story_text.py act49side
+
+# Build without commentary pages
+uv run python build.py --no-commentary
+```
+
+### Backfilling events
+
+Commentary is added incrementally — only `act49side` has it initially. Use
+`scripts/list_missing_commentary.py` to see the backlog and work newest-first,
+**one event per run and per commit**. Do not batch: the diff review is the quality
+gate and it does not scale, and plausible-but-wrong commentary is worse than none.
+Full procedure, ordering guidance, and periodic verification steps are in
+[docs/ai_commentary_workflow.md](docs/ai_commentary_workflow.md).
+
+### Data format
+
+`content/commentary/{event_id}.json` holds four sections — `summary`,
+`revealed_facts`, `open_threads`, `glossary` — plus `schema_version` and
+provenance fields. The full schema is documented in
+`.claude/skills/ai-commentary/reference/schema.md`.
+
+Every entry carries `stage_refs`: stage codes (e.g. `TA-1`, `TA-ST-1`) that become
+in-page links to the corresponding story pages. This is the feature's main value —
+readers can jump from a claim straight to the scene supporting it.
+
+### Invariants to preserve
+
+- **Commentary is optional.** Events without a JSON file render exactly as before;
+  the "AI解説" link only appears when the data exists. Never treat a missing file
+  as an error, and do not add it to `scripts/check_empty_events.py`.
+- **stage_refs must resolve.** `src/lib/commentary_paths.py` derives the
+  stage_ref → page filename mapping, shared by the extractor, the renderer, and the
+  validator. **Known debt**: the same page-name rule is implemented three times —
+  `story_generator.py` (which *writes* the files, using positional `ST-{i+1}` /
+  `story_{i}`), `event_generator.py` (which links to them, using `stage_info['code']`),
+  and `commentary_paths.py`. These agree today for all events, but only because
+  stage_table.json happens to code MINISTORY stages in file order. If you touch
+  filename logic in any of the three, update all three. Consolidating them (ideally
+  having `story_generator` publish the map it actually wrote) is the right fix.
+- **Unresolvable refs degrade, they do not break.** The renderer emits a plain label
+  instead of a broken link, so the link checker keeps passing. It also prints a
+  build warning, since a whole event failing to resolve indicates mapping breakage
+  rather than an author typo. `validate_commentary.py` is what fails CI.
+- **Content is AI-generated and must be labeled as such.** The page carries both a
+  spoiler warning and an AI-provenance notice. Keep them.
+
+### Scope
+
+Currently events only. Main story chapters use a separate generator path
+(`MainStoryGenerator`) and are a planned follow-up; the design extends via
+`content/commentary/main_XX.json`.
+
 ## Event Story Validation
 
 **IMPORTANT**: Always validate that all events have stories AND proper linking to ensure complete story generation.
@@ -241,9 +346,21 @@ The script identifies several types of issues:
 ### Search
 - `tools/bigram-index/` - Rust CLI tool for bi-gram inverted index generation
 - `src/generators/ngram_search_index.py` - Python stage extraction + Rust integration
+- `src/lib/story_text.py` - Shared story text extraction (search + AI commentary input)
 - `static/js/ngram_search.js` - Client-side two-stage search (bi-gram index + full-text verify)
 - `static/js/search_manager.js` - Search manager factory (auto-detects index type)
 - `tests/e2e/test_search.py` - Playwright integration tests for search
+
+### AI Commentary
+- `.claude/skills/ai-commentary/SKILL.md` - Skill that generates commentary data
+- `scripts/extract_story_text.py` - Extracts an event's stories as a readable transcript
+- `scripts/validate_commentary.py` - Validates committed commentary JSON
+- `scripts/list_missing_commentary.py` - Lists events lacking commentary
+- `src/lib/commentary_parser.py` - Loads commentary JSON into dataclasses
+- `src/lib/commentary_paths.py` - Maps stage_refs to generated story page names
+- `src/generators/commentary_generator.py` - Renders the commentary page
+- `templates/commentary.html`, `static/css/commentary.css` - Presentation
+- `content/commentary/{event_id}.json` - Hand-committed commentary data
 
 ### Configuration & Build
 - `build.py` - Main build script with integrated link checking

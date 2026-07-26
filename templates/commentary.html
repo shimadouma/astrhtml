@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ css_path }}commentary.css">
+{% endblock %}
+
+{% macro stage_links(refs) %}
+{% set resolved = resolve_refs(refs) %}
+{% if resolved %}
+<div class="stage-refs">
+    <span class="stage-refs-label">該当ステージ:</span>
+    {% for ref in resolved %}
+    {% if ref.href %}
+    <a class="stage-ref" href="{{ ref.href }}">{{ ref.label }}</a>
+    {% else %}
+    <span class="stage-ref stage-ref-unlinked">{{ ref.label }}</span>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{% block title %}AI解説: {{ event.event_name }} - アークナイツ ストーリーアーカイブ{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb">
+    <ol>
+        <li><a href="{{ index_path }}">ホーム</a></li>
+        <li><a href="{{ index_path }}#events">イベント一覧</a></li>
+        <li><a href="index.html">{{ event.event_name }}</a></li>
+        <li class="active">AI解説</li>
+    </ol>
+</nav>
+
+<section class="commentary-header">
+    <h2>AI解説: {{ event.event_name }}</h2>
+    <div class="commentary-notice" role="note">
+        <p class="commentary-notice-spoiler">
+            <strong>ネタバレ注意</strong>
+            このページはシナリオの結末までの内容を含みます。本編を読んだ後の振り返りを想定しています。
+        </p>
+        <p class="commentary-notice-ai">
+            この解説はAIが本編テキストを読んで生成したものです。公式の見解ではなく、
+            解釈の誤りや記述漏れが含まれる場合があります。
+        </p>
+    </div>
+</section>
+
+{% if sections %}
+<nav class="commentary-toc" aria-label="目次">
+    <h3>目次</h3>
+    <ul>
+        {% for section in sections %}
+        <li><a href="#{{ section.id }}">{{ section.label }}</a> <span class="toc-count">{{ section.count }}</span></li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+
+{% if commentary.summary %}
+<section class="commentary-section" id="summary">
+    <h3>{{ section_label['summary'] }}</h3>
+    {% for item in commentary.summary %}
+    <article class="commentary-block">
+        {% if item.heading %}<h4>{{ item.heading }}</h4>{% endif %}
+        <p>{{ item.body }}</p>
+        {{ stage_links(item.stage_refs) }}
+    </article>
+    {% endfor %}
+</section>
+{% endif %}
+
+{% if commentary.revealed_facts %}
+<section class="commentary-section" id="revealed_facts">
+    <h3>{{ section_label['revealed_facts'] }}</h3>
+    <ul class="commentary-list">
+        {% for item in commentary.revealed_facts %}
+        <li class="commentary-item">
+            <div class="commentary-item-body">
+                <span class="fact-basis fact-basis-{{ item.basis }}">{{ item.basis_label }}</span>
+                <span class="fact-text">{{ item.fact }}</span>
+            </div>
+            {{ stage_links(item.stage_refs) }}
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if commentary.open_threads %}
+<section class="commentary-section" id="open_threads">
+    <h3>{{ section_label['open_threads'] }}</h3>
+    <ul class="commentary-list">
+        {% for item in commentary.open_threads %}
+        <li class="commentary-item">
+            <div class="commentary-item-body">
+                <p class="thread-text">{{ item.thread }}</p>
+                {% if item.context %}<p class="thread-context">{{ item.context }}</p>{% endif %}
+            </div>
+            {{ stage_links(item.stage_refs) }}
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if commentary.glossary %}
+<section class="commentary-section" id="glossary">
+    <h3>{{ section_label['glossary'] }}</h3>
+    <dl class="glossary-list">
+        {% for item in commentary.glossary %}
+        <div class="glossary-entry">
+            <dt class="glossary-term">
+                {{ item.term }}
+                {% if item.reading %}<span class="glossary-reading">{{ item.reading }}</span>{% endif %}
+            </dt>
+            <dd class="glossary-definition">
+                {{ item.definition }}
+                {{ stage_links(item.stage_refs) }}
+            </dd>
+        </div>
+        {% endfor %}
+    </dl>
+</section>
+{% endif %}
+
+<section class="commentary-meta">
+    {% if commentary.generated_at %}
+    <p>生成日: {{ commentary.generated_at }}</p>
+    {% endif %}
+    {% if commentary.generator %}
+    <p>生成モデル: {{ commentary.generator }}</p>
+    {% endif %}
+</section>
+
+<nav class="navigation">
+    <a href="index.html" class="btn btn-back">{{ event.event_name }}のストーリー一覧に戻る</a>
+</nav>
+{% endblock %}

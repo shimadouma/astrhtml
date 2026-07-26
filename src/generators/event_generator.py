@@ -7,6 +7,7 @@ from ..models.event import Event
 from ..models.story import Story
 from ..utils.date_formatter import format_timestamp
 from ..lib.event_parser import get_ordered_stories_for_event
+from ..lib.commentary_parser import load_commentary
 from ..config import DIST_PATH, ARKNIGHTS_STORY_JSON_PATH
 
 
@@ -193,6 +194,7 @@ class EventGenerator(BaseGenerator):
                 'total_wordcount_display': format_wordcount(total_wordcount) if total_wordcount else ''
             },
             'stories': stories_data,
+            'has_commentary': load_commentary(event.event_id) is not None,
             **paths
         }
         
