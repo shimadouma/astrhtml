@@ -40,7 +40,7 @@
     "source=${localWorkspaceFolder}/.devcontainer/inside-container.settings.local.json,target=${containerWorkspaceFolder}/.claude/settings.local.json,type=bind",
     "source=${localEnv:HOME}/.gitconfig,target=/home/ubuntu/.gitconfig,type=bind,consistency=cached",
     "source=${localEnv:GH_CONFIG_DIR},target=/home/ubuntu/.config/gh,type=bind,consistency=cached",
-    "source=${localEnv:SSH_AUTH_SOCK},target=/tmp/ssh-auth.sock,type=bind,consistency=cached"
+    "source=/var/tmp/ssh-agent-1000.sock,target=/tmp/ssh-auth.sock,type=bind,consistency=cached"
     ,"source=${localEnv:HOME}/.claude,target=/host-claude,type=bind,readonly",
     "source=${localEnv:HOME}/.claude.json,target=/host-claude.json,type=bind,readonly"
   ],
